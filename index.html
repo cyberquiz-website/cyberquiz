@@ -1,0 +1,1358 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CyberQuiz</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 96 96'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%236366f1'/%3E%3Cstop offset='1' stop-color='%23c084fc'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='96' height='96' rx='26' fill='url(%23g)'/%3E%3Cpath d='M13 2 3 14 9 14 11 22 21 10 15 10 17 2z' fill='white' transform='translate(12 12) scale(3)'/%3E%3C/svg%3E">
+<style>
+  :root {
+    --fondo: #0b1020;
+    --acento: #6366f1;
+    --acento2: #c084fc;
+    --verde: #22c55e;
+    --rojo: #ef4444;
+    --ambar: #f59e0b;
+    --texto: #f1f5f9;
+    --texto-suave: #94a3b8;
+    --vidrio: rgba(255,255,255,0.05);
+    --borde: rgba(255,255,255,0.09);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    font-family: "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
+    background: var(--fondo);
+    color: var(--texto);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    padding: 24px;
+    overflow-x: hidden;
+    position: relative;
+  }
+  .blob {
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(110px);
+    opacity: 0.32;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .blob-1 { width: 480px; height: 480px; background: #4f46e5; top: -140px; left: -120px; animation: flotar1 22s ease-in-out infinite alternate; }
+  .blob-2 { width: 420px; height: 420px; background: #a855f7; bottom: -150px; right: -110px; animation: flotar2 26s ease-in-out infinite alternate; }
+  @keyframes flotar1 { from { transform: translate(0,0) scale(1); } to { transform: translate(120px, 80px) scale(1.15); } }
+  @keyframes flotar2 { from { transform: translate(0,0) scale(1.1); } to { transform: translate(-100px, -70px) scale(0.95); } }
+
+  .tarjeta {
+    position: relative;
+    z-index: 1;
+    background: var(--vidrio);
+    backdrop-filter: blur(22px) saturate(140%);
+    -webkit-backdrop-filter: blur(22px) saturate(140%);
+    border: 1px solid var(--borde);
+    border-radius: 26px;
+    box-shadow: 0 24px 70px rgba(0,0,0,0.55);
+    width: 100%;
+    max-width: 940px;
+    padding: 44px;
+    text-align: center;
+    animation: entrada 0.45s cubic-bezier(.2,.8,.3,1);
+  }
+  @keyframes entrada { from { opacity: 0; transform: translateY(16px) scale(0.985); } to { opacity: 1; transform: none; } }
+
+  h1 {
+    font-size: clamp(2.3rem, 5.5vw, 3.6rem);
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    margin-bottom: 10px;
+  }
+  .titulo-logo h1 span {
+    display: inline-block;
+    background: linear-gradient(92deg, #a5b4fc, var(--acento2), #67e8f9);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: ola 2.6s ease-in-out infinite;
+    animation-delay: calc(var(--i) * 0.13s);
+  }
+  @keyframes ola {
+    0%, 100% { transform: translateY(7px); }
+    50% { transform: translateY(-7px); }
+  }
+  .subtitulo { color: var(--texto-suave); font-size: 1.15rem; margin-bottom: 36px; }
+  .titulo-logo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+  }
+  .logo {
+    width: clamp(58px, 9vw, 84px);
+    height: auto;
+    filter: drop-shadow(0 10px 28px rgba(139,92,246,0.5));
+    animation: flotar-logo 4.5s ease-in-out infinite;
+    flex-shrink: 0;
+  }
+  @keyframes flotar-logo {
+    0%, 100% { transform: translateY(0) rotate(-2deg); }
+    50% { transform: translateY(-7px) rotate(2deg); }
+  }
+  .brillo-linea {
+    height: 3px; width: 130px; margin: 0 auto 14px; border-radius: 99px;
+    background: linear-gradient(90deg, transparent, var(--acento), var(--acento2), transparent);
+  }
+
+  .lobby-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 18px;
+    text-align: left;
+  }
+  .tarjeta-quiz {
+    position: relative;
+    background: rgba(255,255,255,0.045);
+    border: 1.5px solid rgba(255,255,255,0.09);
+    border-radius: 20px;
+    padding: 26px 24px;
+    cursor: pointer;
+    transition: transform 0.2s cubic-bezier(.2,.8,.3,1), border-color 0.2s, background 0.2s, box-shadow 0.25s;
+    color: var(--texto);
+    font-family: inherit;
+    display: flex;
+    flex-direction: column;
+    gap: 11px;
+    align-items: flex-start;
+    overflow: hidden;
+  }
+  .tarjeta-quiz::before {
+    content: "";
+    position: absolute; inset: 0;
+    background: radial-gradient(420px 180px at var(--mx,50%) -20%, var(--glow, rgba(99,102,241,0.25)), transparent 65%);
+    opacity: 0; transition: opacity 0.25s;
+    pointer-events: none;
+  }
+  .tarjeta-quiz:hover { transform: translateY(-6px); border-color: var(--color-tarjeta); background: rgba(255,255,255,0.07); box-shadow: 0 18px 44px rgba(0,0,0,0.5); }
+  .tarjeta-quiz:hover::before { opacity: 1; }
+  .badge {
+    font-size: 0.74rem; font-weight: 700; letter-spacing: 1.4px;
+    color: #fff; background: var(--color-tarjeta);
+    border-radius: 8px; padding: 5px 12px;
+    box-shadow: 0 4px 14px color-mix(in srgb, var(--color-tarjeta) 45%, transparent);
+  }
+  .tarjeta-quiz h3 { font-size: 1.28rem; font-weight: 700; }
+  .tarjeta-quiz p { color: var(--texto-suave); font-size: 0.94rem; line-height: 1.5; flex-grow: 1; }
+  .num-preguntas { font-size: 0.84rem; font-weight: 600; color: var(--texto-suave); display: flex; align-items: center; gap: 8px; }
+  .punto-color { width: 8px; height: 8px; border-radius: 50%; background: var(--color-tarjeta); box-shadow: 0 0 10px var(--color-tarjeta); }
+
+  .boton {
+    background: linear-gradient(92deg, var(--acento), var(--acento2));
+    color: white; border: none; border-radius: 14px;
+    font-size: 1.12rem; font-weight: 700;
+    padding: 15px 46px; cursor: pointer;
+    transition: transform 0.16s, box-shadow 0.16s, filter 0.16s;
+    box-shadow: 0 10px 28px rgba(99,102,241,0.35);
+  }
+  .boton:hover { transform: translateY(-2px); filter: brightness(1.08); box-shadow: 0 14px 34px rgba(139,92,246,0.45); }
+  .boton:active { transform: translateY(0); }
+  .boton-secundario { background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.16); box-shadow: none; }
+  .boton-secundario:hover { background: rgba(255,255,255,0.13); box-shadow: none; }
+  .zona-botones-final { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+
+  .cabecera-quiz { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .tema-actual {
+    font-size: 0.72rem; font-weight: 700; letter-spacing: 1.4px; color: #fff;
+    background: linear-gradient(92deg, var(--acento), var(--acento2));
+    border-radius: 999px; padding: 6px 14px;
+  }
+  .fila-info { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; margin-bottom: 14px; flex-wrap: wrap; gap: 10px; }
+  .chip {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.09);
+    padding: 6px 16px; border-radius: 999px;
+    font-weight: 700; font-size: 0.95rem;
+  }
+  .chip-puntos { color: #a5b4fc; }
+  #reloj { font-variant-numeric: tabular-nums; }
+  @keyframes pulso { 0%,100% { transform: scale(1); } 50% { transform: scale(1.07); } }
+  .barra-progreso { height: 9px; background: rgba(255,255,255,0.07); border-radius: 999px; overflow: hidden; margin-bottom: 10px; }
+  #relleno { height: 100%; width: 0%; background: linear-gradient(90deg, var(--acento), var(--acento2)); border-radius: 999px; transition: width 0.45s cubic-bezier(.2,.8,.3,1); }
+  .barra-tiempo { height: 6px; background: rgba(255,255,255,0.06); border-radius: 999px; overflow: hidden; margin-bottom: 26px; }
+  #tiempo-relleno {
+    height: 100%; width: 100%;
+    background: linear-gradient(90deg, var(--verde), #a3e635);
+    border-radius: 999px;
+    transition: width 0.12s linear, background 0.4s;
+  }
+  .pregunta { font-size: clamp(1.22rem, 2.7vw, 1.68rem); font-weight: 650; margin-bottom: 28px; line-height: 1.42; min-height: 66px; }
+  .opciones { display: grid; gap: 13px; }
+  .opcion {
+    background: rgba(255,255,255,0.045);
+    border: 1.5px solid rgba(255,255,255,0.11);
+    border-radius: 15px;
+    color: var(--texto);
+    font-size: 1.07rem;
+    text-align: left;
+    padding: 17px 20px;
+    cursor: pointer;
+    transition: all 0.16s;
+    display: flex; gap: 14px; align-items: center;
+    width: 100%;
+    font-family: inherit;
+  }
+  .opcion:hover:not(:disabled) { border-color: var(--acento); background: rgba(99,102,241,0.13); transform: translateX(6px); }
+  .opcion:disabled { cursor: default; opacity: 0.85; }
+  .letra {
+    background: rgba(255,255,255,0.09);
+    border-radius: 9px;
+    min-width: 34px; height: 34px;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 0.9rem; flex-shrink: 0;
+    transition: background 0.2s;
+  }
+  .correcta { border-color: var(--verde) !important; background: rgba(34,197,94,0.16) !important; }
+  .correcta .letra { background: var(--verde); color: #052e16; }
+  .incorrecta { border-color: var(--rojo) !important; background: rgba(239,68,68,0.15) !important; animation: temblor 0.35s; }
+  .incorrecta .letra { background: var(--rojo); color: #450a0a; }
+  @keyframes temblor { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-6px)} 75%{transform:translateX(6px)} }
+  #zona-resultado { display: none; margin-top: 24px; text-align: left; animation: aparecer 0.3s ease; }
+  #etiqueta-resultado { font-weight: 800; font-size: 1.02rem; margin-bottom: 8px; letter-spacing: 0.3px; }
+  #etiqueta-resultado.bien { color: var(--verde); }
+  #etiqueta-resultado.mal { color: var(--rojo); }
+  #etiqueta-resultado.tiempo { color: var(--ambar); }
+  #explicacion {
+    background: rgba(255,255,255,0.05);
+    border-left: 3px solid var(--acento);
+    border-radius: 0 12px 12px 0;
+    padding: 15px 19px;
+    color: var(--texto-suave);
+    line-height: 1.55;
+    font-size: 0.98rem;
+  }
+  @keyframes aparecer { from {opacity:0; transform: translateY(8px);} to {opacity:1; transform:none;} }
+  #zona-siguiente { display: none; margin-top: 24px; }
+
+  .puntaje-final { font-size: clamp(3.4rem, 8vw, 5.2rem); font-weight: 900; line-height: 1.1; background: linear-gradient(92deg, #a5b4fc, var(--acento2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .mensaje-final { font-size: 1.35rem; margin: 12px 0 22px; font-weight: 650; }
+  .stats-finales { display: flex; justify-content: center; gap: 14px; margin-bottom: 34px; flex-wrap: wrap; }
+  .stat {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.09);
+    border-radius: 16px;
+    padding: 16px 26px;
+    min-width: 118px;
+  }
+  .stat b { display: block; font-size: 1.6rem; }
+  .stat span { color: var(--texto-suave); font-size: 0.84rem; font-weight: 600; }
+  .stat-verde b { color: var(--verde); } .stat-rojo b { color: var(--rojo); } .stat-ambar b { color: var(--ambar); }
+  .detalle-final { color: var(--texto-suave); margin-bottom: 30px; font-size: 1rem; }
+  .oculto { display: none !important; }
+
+  .contenedor-pagina {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 940px;
+    margin: auto;
+    display: flex;
+    flex-direction: column;
+  }
+  .btn-atras {
+    align-self: flex-start;
+    margin-bottom: 16px;
+    width: 54px; height: 54px;
+    border-radius: 17px;
+    background: var(--vidrio);
+    backdrop-filter: blur(20px) saturate(140%);
+    -webkit-backdrop-filter: blur(20px) saturate(140%);
+    border: 1px solid rgba(255,255,255,0.14);
+    color: var(--texto);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 10px 28px rgba(0,0,0,0.4);
+    transition: transform 0.25s cubic-bezier(.34,1.56,.64,1), background 0.2s, border-color 0.2s;
+  }
+  .btn-atras:hover { transform: translateX(-4px); background: rgba(255,255,255,0.11); border-color: var(--acento); }
+  .btn-atras svg { width: 24px; height: 24px; }
+
+  .boton, .opcion, .btn-atras { position: relative; overflow: hidden; -webkit-tap-highlight-color: transparent; }
+
+  .boton, .opcion, .tarjeta-quiz, .btn-atras { will-change: transform; }
+  .boton:active { transform: scale(0.94); filter: brightness(1.2); transition-duration: 0.09s; }
+  .opcion:active:not(:disabled) { transform: scale(0.965); transition-duration: 0.09s; }
+  .tarjeta-quiz:active { transform: scale(0.965); transition-duration: 0.09s; }
+  .btn-atras:active { transform: scale(0.88); transition-duration: 0.09s; }
+
+  .onda {
+    position: absolute;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0.18) 42%, rgba(255,255,255,0) 70%);
+    transform: translate(-50%, -50%) scale(0);
+    pointer-events: none;
+    mix-blend-mode: screen;
+    animation: expandir-onda 0.7s cubic-bezier(.2,.6,.35,1) forwards;
+  }
+  @keyframes expandir-onda {
+    0% { transform: translate(-50%, -50%) scale(0); opacity: 1; }
+    70% { opacity: 0.55; }
+    100% { transform: translate(-50%, -50%) scale(1); opacity: 0; }
+  }
+
+  #particulas { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+  .vineta {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background: radial-gradient(ellipse at center, transparent 52%, rgba(3,7,18,0.6) 100%);
+  }
+  ::selection { background: rgba(139,92,246,0.55); color: #fff; }
+  ::-webkit-scrollbar { width: 11px; }
+  ::-webkit-scrollbar-track { background: var(--fondo); }
+  ::-webkit-scrollbar-thumb { background: linear-gradient(180deg, var(--acento), var(--acento2)); border-radius: 99px; border: 2px solid var(--fondo); }
+
+  .tarjeta-quiz { animation: entrada 0.55s cubic-bezier(.2,.8,.3,1) both; animation-delay: calc(var(--d) * 80ms); }
+  .card-icon { width: 32px; height: 32px; flex-shrink: 0; opacity: 0.95; filter: drop-shadow(0 3px 8px rgba(0,0,0,0.35)); }
+  .fila-icono { display: flex; align-items: center; justify-content: space-between; width: 100%; }
+  .mejor-puntaje {
+    font-size: 0.78rem; font-weight: 700; letter-spacing: 0.4px;
+    color: #86efac; background: rgba(34,197,94,0.12);
+    border: 1px solid rgba(34,197,94,0.35);
+    border-radius: 999px; padding: 4px 11px;
+  }
+
+  .cabecera-categoria { display: flex; align-items: center; gap: 18px; margin-bottom: 30px; text-align: left; }
+  .cat-icono-box {
+    width: 66px; height: 66px; border-radius: 20px;
+    display: flex; align-items: center; justify-content: center;
+    border: 1px solid rgba(255,255,255,0.18);
+    flex-shrink: 0;
+    box-shadow: 0 10px 26px rgba(0,0,0,0.35);
+  }
+  .cat-icono-box svg { width: 34px; height: 34px; }
+  #pantalla-categoria h2 {
+    font-size: clamp(1.7rem, 4vw, 2.4rem);
+    font-weight: 800; letter-spacing: -0.5px;
+    background: linear-gradient(92deg, #a5b4fc, var(--acento2));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .subtitulo-cat { color: var(--texto-suave); font-size: 0.95rem; margin-top: 5px; line-height: 1.45; }
+  .icono-categoria {
+    width: 46px; height: 46px; border-radius: 14px;
+    display: inline-flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .icono-categoria svg { width: 26px; height: 26px; }
+
+  .reloj-circular {
+    position: relative;
+    width: 76px; height: 76px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .reloj-circular svg { position: absolute; inset: 0; transform: rotate(-90deg); }
+  .anillo-fondo { fill: none; stroke: rgba(255,255,255,0.08); stroke-width: 5.5; }
+  #anillo {
+    fill: none; stroke: var(--verde); stroke-width: 5.5;
+    stroke-linecap: round;
+    stroke-dasharray: 163.36; stroke-dashoffset: 0;
+    transition: stroke-dashoffset 0.12s linear, stroke 0.4s;
+    filter: drop-shadow(0 0 6px currentColor);
+  }
+  .tiempo-num {
+    font-size: 1.28rem; font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    transition: color 0.35s;
+    color: #86efac;
+  }
+  .reloj-circular.medio .tiempo-num { color: #fcd34d; }
+  .reloj-circular.critico .tiempo-num { color: #fca5a5; animation: pulso 0.8s ease infinite; }
+  .reloj-circular.medio #anillo { stroke: var(--ambar); }
+  .reloj-circular.critico #anillo { stroke: var(--rojo); }
+
+  .dots { display: flex; justify-content: center; gap: 7px; margin-bottom: 20px; flex-wrap: wrap; }  .dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: rgba(255,255,255,0.13);
+    transition: all 0.3s;
+  }
+  .dot.actual {
+    background: #fff;
+    box-shadow: 0 0 0 4px rgba(255,255,255,0.15), 0 0 12px rgba(255,255,255,0.4);
+    transform: scale(1.25);
+  }
+  .dot.ok { background: var(--verde); box-shadow: 0 0 8px rgba(34,197,94,0.6); }
+  .dot.mal { background: var(--rojo); box-shadow: 0 0 8px rgba(239,68,68,0.6); }
+  .dot.to { background: var(--ambar); box-shadow: 0 0 8px rgba(245,158,11,0.6); }
+
+  .racha {
+    display: none;
+    align-items: center; gap: 7px;
+    background: linear-gradient(92deg, #f59e0b33, #ef444433);
+    border: 1px solid rgba(245,158,11,0.5);
+    color: #fcd34d;
+    padding: 6px 16px; border-radius: 999px;
+    font-weight: 800; font-size: 0.95rem;
+    animation: pop-racha 0.35s cubic-bezier(.34,1.56,.64,1);
+  }
+  .racha.visible { display: inline-flex; }
+  @keyframes pop-racha { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+  .pregunta.animar { animation: deslizar-pregunta 0.38s cubic-bezier(.2,.8,.3,1); }
+  @keyframes deslizar-pregunta { from { opacity: 0; transform: translateX(28px); } to { opacity: 1; transform: none; } }
+  .opciones.animar .opcion { animation: subir-opcion 0.4s cubic-bezier(.2,.8,.3,1) both; animation-delay: calc(var(--o) * 55ms); }
+  @keyframes subir-opcion { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+
+  .confeti {
+    position: fixed;
+    top: -20px;
+    width: 10px; height: 17px;
+    border-radius: 2px;
+    z-index: 90;
+    pointer-events: none;
+    animation: caer-confeti var(--dur) ease-in var(--delay) forwards;
+  }
+  @keyframes caer-confeti {
+    to { transform: translateY(115vh) rotate(var(--rot)); opacity: 0.15; }
+  }
+
+  @media (max-width: 640px) {
+    .tarjeta { padding: 26px 20px; }
+    .pregunta { min-height: unset; }
+  }
+
+  @media (max-height: 880px) {
+    .tarjeta { padding: 28px 30px; }
+    .pregunta { min-height: unset; margin-bottom: 20px; }
+    .reloj-circular { width: 62px; height: 62px; }
+    .tiempo-num { font-size: 1.1rem; }
+    .dots { margin-bottom: 14px; gap: 6px; }
+    .dot { width: 8px; height: 8px; }
+    .opcion { padding: 13px 16px; font-size: 1rem; }
+    .barra-progreso { margin-bottom: 7px; }
+    .fila-info { margin-top: 10px; margin-bottom: 12px; }
+    #zona-siguiente { margin-top: 16px; }
+    .btn-atras { margin-bottom: 10px; width: 48px; height: 48px; }
+    #explicacion { margin-top: 16px; padding: 13px 16px; font-size: 0.92rem; }
+    #zona-resultado { margin-top: 16px; }
+  }
+
+  @media (max-height: 720px) {
+    body { padding: 14px; }
+    .tarjeta { padding: 20px 24px; border-radius: 18px; }
+    h1 { font-size: clamp(1.9rem, 5vw, 2.7rem); }
+    .titulo-logo { gap: 13px; }
+    .logo { width: 50px; }
+    .subtitulo { margin-bottom: 18px; font-size: 1rem; }
+    .cabecera-quiz { gap: 8px; }
+    .chip { padding: 5px 13px; font-size: 0.88rem; }
+    .stats-finales { margin-bottom: 22px; }
+    .stat { padding: 12px 20px; min-width: 100px; }
+    .puntaje-final { font-size: clamp(2.8rem, 7vw, 4rem); }
+    .mensaje-final { margin: 8px 0 14px; font-size: 1.15rem; }
+    .detalle-final { margin-bottom: 20px; }
+    .lobby-grid { gap: 13px; }
+    .tarjeta-quiz { padding: 19px 18px; gap: 8px; }
+    .tarjeta-quiz h3 { font-size: 1.12rem; }
+    .tarjeta-quiz p { font-size: 0.88rem; }
+    .cabecera-categoria { margin-bottom: 20px; gap: 13px; }
+    .cat-icono-box { width: 54px; height: 54px; border-radius: 15px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="blob blob-1"></div>
+<div class="blob blob-2"></div>
+<canvas id="particulas"></canvas>
+<div class="vineta"></div>
+
+<div class="contenedor-pagina">
+
+<button class="btn-atras oculto" id="btn-atras" title="Volver al inicio" aria-label="Volver al inicio">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+    <line x1="19" y1="12" x2="5" y2="12"/>
+    <polyline points="12 19 5 12 12 5"/>
+  </svg>
+</button>
+
+<div class="tarjeta oculto" id="pantalla-lobby">
+    <div class="titulo-logo">
+    <svg class="logo" viewBox="0 0 96 96" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Logo CyberQuiz">
+      <defs>
+        <linearGradient id="grad-logo" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#6366f1"/>
+          <stop offset="1" stop-color="#c084fc"/>
+        </linearGradient>
+      </defs>
+      <rect width="96" height="96" rx="26" fill="url(#grad-logo)"/>
+      <rect x="1.5" y="1.5" width="93" height="93" rx="24.5" fill="none" stroke="rgba(255,255,255,0.35)" stroke-width="2"/>
+      <path d="M13 2 3 14 9 14 11 22 21 10 15 10 17 2z" fill="#ffffff" transform="translate(12 12) scale(3)"/>
+    </svg>
+    <h1 aria-label="CyberQuiz"><span style="--i:0">C</span><span style="--i:1">y</span><span style="--i:2">b</span><span style="--i:3">e</span><span style="--i:4">r</span><span style="--i:5">Q</span><span style="--i:6">u</span><span style="--i:7">i</span><span style="--i:8">z</span></h1>
+  </div>
+  <p class="subtitulo">Elige un tema · 30 segundos por pregunta · orden aleatorio</p>
+  <div class="lobby-grid" id="lobby-grid"></div>
+</div>
+
+<div class="tarjeta oculto" id="pantalla-categoria">
+  <div class="cabecera-categoria">
+    <span class="cat-icono-box" id="cat-icono-box"><span id="cat-icono"></span></span>
+    <div>
+      <h2 id="cat-titulo"></h2>
+      <p class="subtitulo-cat" id="cat-sub"></p>
+    </div>
+  </div>
+  <div class="lobby-grid" id="categoria-grid"></div>
+</div>
+
+<div class="tarjeta oculto" id="pantalla-quiz">
+  <div class="cabecera-quiz">
+    <span class="tema-actual" id="tema-actual"></span>
+    <span id="reloj" class="reloj-circular">
+      <svg viewBox="0 0 60 60">
+        <circle class="anillo-fondo" cx="30" cy="30" r="26"/>
+        <circle id="anillo" cx="30" cy="30" r="26"/>
+      </svg>
+      <span class="tiempo-num" id="tiempo-num">30</span>
+    </span>
+  </div>
+  <div class="fila-info">
+    <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+      <span class="chip chip-puntos" id="puntos">0 pts</span>
+      <span class="racha" id="racha">Racha ×<b id="num-racha">2</b></span>
+    </div>
+    <span class="chip" style="font-weight:600; font-size:0.85rem;" id="contador"></span>
+  </div>
+  <div class="barra-progreso"><div id="relleno"></div></div>
+  <div class="dots" id="dots"></div>
+  <h2 class="pregunta" id="pregunta"></h2>
+  <div class="opciones" id="opciones"></div>
+  <div id="zona-resultado">
+    <div id="etiqueta-resultado"></div>
+    <div id="explicacion"></div>
+  </div>
+  <div id="zona-siguiente"><button class="boton" id="btn-siguiente">Siguiente →</button></div>
+</div>
+
+<div class="tarjeta oculto" id="pantalla-final">
+  <div class="brillo-linea"></div>
+  <p style="color:var(--texto-suave); font-size:1.05rem; letter-spacing:2px;" id="tema-final"></p>
+  <div class="puntaje-final" id="puntaje-final"></div>
+  <p class="mensaje-final" id="mensaje-final"></p>
+  <div class="stats-finales">
+    <div class="stat stat-verde"><b id="stat-ok">0</b><span>Acertadas</span></div>
+    <div class="stat stat-rojo"><b id="stat-mal">0</b><span>Falladas</span></div>
+    <div class="stat stat-ambar"><b id="stat-timeout">0</b><span>Sin responder</span></div>
+  </div>
+  <p class="detalle-final" id="detalle-final"></p>
+  <div class="zona-botones-final">
+    <button class="boton" id="btn-repetir">Jugar otra vez</button>
+    <button class="boton boton-secundario" id="btn-lobby">Volver al inicio</button>
+  </div>
+</div>
+
+</div>
+
+<script>
+const TIEMPO_PREGUNTA = 30;
+
+const quizzes = [
+  {
+    id: "sql",
+    titulo: "SQL Básico",
+    desc: "Los fundamentos del lenguaje de consultas: leer, insertar, modificar y borrar datos.",
+    badge: "SQL",
+    color: "#6366f1",
+    preguntas: [
+      { q: "¿Qué significan las siglas SQL?",
+        ops: ["Simple Question Language", "Structured Query Language", "System Quality Language", "Standard Question Logic"],
+        ok: 1,
+        exp: "SQL = Structured Query Language, el lenguaje estándar para hablar con bases de datos relacionales." },
+      { q: "¿En qué se organizan los datos dentro de una base de datos relacional?",
+        ops: ["En carpetas y archivos", "En tablas de filas y columnas", "En documentos de Word", "En listas de reproducción"],
+        ok: 1,
+        exp: "Las bases relacionales guardan los datos en tablas compuestas por filas (registros) y columnas (campos)." },
+      { q: "¿Qué comando se usa para consultar (leer) datos?",
+        ops: ["SELECT", "GET", "READ", "SHOW ME"],
+        ok: 0,
+        exp: "SELECT lee datos. Ejemplo: SELECT * FROM alumnos;" },
+      { q: "¿Qué significa el asterisco en SELECT * FROM alumnos?",
+        ops: ["Todas las columnas", "Solo la primera fila", "Un error de sintaxis", "Borrar los datos"],
+        ok: 0,
+        exp: "El * significa 'todas las columnas'. Es lo mismo que listarlas una por una." },
+      { q: "¿Qué palabra se usa para filtrar resultados con una condición?",
+        ops: ["IF", "WHERE", "WHEN", "FILTER"],
+        ok: 1,
+        exp: "WHERE filtra filas. Ejemplo: SELECT * FROM alumnos WHERE edad > 17;" },
+      { q: "¿Qué comando agrega nuevos registros a una tabla?",
+        ops: ["ADD", "NEW", "INSERT INTO", "PUT"],
+        ok: 2,
+        exp: "INSERT INTO tabla (columnas) VALUES (valores); añade una fila nueva." },
+      { q: "¿Qué comando modifica datos que ya existen?",
+        ops: ["CHANGE", "MODIFY", "UPDATE", "EDIT"],
+        ok: 2,
+        exp: "UPDATE cambia valores. Ejemplo: UPDATE alumnos SET nota = 10 WHERE id = 3;" },
+      { q: "¿Qué comando elimina filas de una tabla?",
+        ops: ["DELETE", "REMOVE", "ERASE", "CLEAR"],
+        ok: 0,
+        exp: "DELETE FROM tabla WHERE condición; borra filas específicas. ¡Siempre con WHERE!" },
+      { q: "¿Qué comando elimina una tabla COMPLETA (estructura y datos)?",
+        ops: ["DELETE TABLE", "DROP TABLE", "REMOVE TABLE", "TRUNC ALL"],
+        ok: 1,
+        exp: "DROP TABLE borra la tabla entera, no solo sus filas. DELETE solo quita filas." },
+      { q: "¿Qué comando crea una base de datos nueva?",
+        ops: ["MAKE DATABASE", "NEW DATABASE", "CREATE DATABASE", "OPEN DATABASE"],
+        ok: 2,
+        exp: "CREATE DATABASE tienda; crea una base de datos vacía lista para usar." },
+      { q: "¿Qué es una PRIMARY KEY (clave primaria)?",
+        ops: ["La primera columna", "Un identificador único de cada fila", "Una contraseña", "El nombre de la tabla"],
+        ok: 1,
+        exp: "Identifica cada registro de forma única: no se repite ni puede estar vacía (como tu CURP o DNI)." },
+      { q: "¿Qué tipo de dato se usa normalmente para guardar texto corto como nombres?",
+        ops: ["INT", "DATE", "BOOLEAN", "VARCHAR"],
+        ok: 3,
+        exp: "VARCHAR(n) guarda texto de longitud variable. INT guarda números enteros." },
+      { q: "¿Qué cláusula ordena los resultados de una consulta?",
+        ops: ["SORT BY", "GROUP BY", "ORDER BY", "ALIGN BY"],
+        ok: 2,
+        exp: "ORDER BY columna ASC|DESC ordena los resultados ascendente o descendente." },
+      { q: "¿Qué función cuenta cuántas filas tiene una tabla?",
+        ops: ["COUNT()", "SUM()", "TOTAL()", "LEN()"],
+        ok: 0,
+        exp: "SELECT COUNT(*) FROM tabla; devuelve cuántas filas hay." }
+    ]
+  },
+  {
+    id: "mysql",
+    titulo: "Administración MySQL",
+    desc: "Lo esencial del servidor MySQL: comandos básicos, usuarios, permisos y respaldos.",
+    badge: "MySQL DBA",
+    color: "#00b4d8",
+    preguntas: [
+      { q: "¿Cuál es el puerto por defecto de MySQL?",
+        ops: ["80", "3306", "1433", "8080"],
+        ok: 1,
+        exp: "MySQL escucha por el puerto TCP 3306. El 80 es web y el 1433 es SQL Server." },
+      { q: "¿MySQL es una base de datos...?",
+        ops: ["Relacional", "De documentos", "De grafos", "En la nube únicamente"],
+        ok: 0,
+        exp: "MySQL es un sistema gestor de bases de datos relacionales (RDBMS), como MariaDB o PostgreSQL." },
+      { q: "¿Qué comando lista todas las bases de datos existentes?",
+        ops: ["LIST DATABASES;", "SHOW DATABASES;", "SEE DATABASES;", "FIND DATABASES;"],
+        ok: 1,
+        exp: "SHOW DATABASES; muestra las bases de datos disponibles en el servidor." },
+      { q: "¿Cómo seleccionas una base de datos para empezar a trabajar?",
+        ops: ["USE tienda;", "OPEN tienda;", "ENTER tienda;", "LOAD tienda;"],
+        ok: 0,
+        exp: "USE tienda; activa esa base de datos para las siguientes consultas." },
+      { q: "¿Qué comando muestra las tablas de la base actual?",
+        ops: ["SHOW TABLES;", "LIST TABLES;", "DESCRIBE TABLES;", "VIEW TABLES;"],
+        ok: 0,
+        exp: "Tras hacer USE base;, SHOW TABLES; lista todas sus tablas." },
+      { q: "¿Qué comando muestra las columnas y tipos de una tabla?",
+        ops: ["EXPLAIN tabla;", "INFO tabla;", "DESCRIBE tabla;", "DETAIL tabla;"],
+        ok: 2,
+        exp: "DESCRIBE tabla; (o DESC tabla;) muestra columnas, tipos, claves y si aceptan nulos." },
+      { q: "¿Qué usuario tiene todos los permisos justo después de instalar MySQL?",
+        ops: ["admin", "root", "user", "guest"],
+        ok: 1,
+        exp: "root es el superusuario. Por seguridad debe tener siempre contraseña." },
+      { q: "¿Qué programa gráfico oficial usa MySQL para administrar bases de datos visualmente?",
+        ops: ["MySQL Viewer", "MySQL Workbench", "MySQL Studio", "MySQL Desktop"],
+        ok: 1,
+        exp: "MySQL Workbench permite diseñar, consultar y administrar bases sin escribir todo por consola." },
+      { q: "¿Qué comando otorga permisos a un usuario?",
+        ops: ["GIVE", "PERMIT", "GRANT", "ALLOW"],
+        ok: 2,
+        exp: "GRANT privilegio ON base.* TO 'usuario'@'localhost'; concede permisos. REVOKE los quita." },
+      { q: "¿Qué comando crea un usuario nuevo?",
+        ops: ["CREATE USER 'ana'@'localhost';", "ADD USER ana;", "NEW USER 'ana';", "REGISTER USER ana;"],
+        ok: 0,
+        exp: "CREATE USER 'ana'@'localhost' IDENTIFIED BY 'contraseña'; crea la cuenta de acceso." },
+      { q: "¿Qué herramienta de consola genera respaldos (backups)?",
+        ops: ["mysqldump", "mysqlcopy", "mysqlexport", "mysqlsave"],
+        ok: 0,
+        exp: "mysqldump -u root -p tienda > backup.sql exporta toda la base a un archivo .sql." },
+      { q: "¿Para qué sirve un backup (respaldo)?",
+        ops: ["Para acelerar consultas", "Para recuperar los datos si algo falla", "Para encriptar la base", "Para cambiar el puerto"],
+        ok: 1,
+        exp: "Un backup guarda una copia de seguridad que permite restaurar los datos ante errores o pérdidas." }
+    ]
+  },
+  {
+    id: "python",
+    titulo: "Python Básico",
+    desc: "Primeros pasos con Python: variables, listas, condiciones, bucles y funciones.",
+    badge: "PYTHON",
+    color: "#3776ab",
+    preguntas: [
+      { q: "¿Qué función muestra texto en pantalla en Python?",
+        ops: ["print()", "echo()", "say()", "write()"],
+        ok: 0,
+        exp: "print('Hola') muestra el texto en pantalla. Es la primera función que todos aprenden." },
+      { q: "¿Con qué símbolo empieza un comentario en Python?",
+        ops: ["//", "<!--", "#", "**"],
+        ok: 2,
+        exp: "# esto es un comentario. Python ignora todo lo que va después del símbolo numeral." },
+      { q: "¿Cuál de estas variables tiene un nombre VÁLIDO?",
+        ops: ["2nombre", "mi-variable", "mi_variable", "mi variable"],
+        ok: 2,
+        exp: "Las variables no pueden empezar con número ni llevar guiones o espacios. Se usa guion bajo: mi_variable." },
+      { q: "¿Qué tipo de dato es el número 3.14?",
+        ops: ["int", "str", "float", "bool"],
+        ok: 2,
+        exp: "Los decimales son float. Los enteros int, el texto str y los lógicos bool." },
+      { q: "¿Qué tipo de dato son True y False?",
+        ops: ["Booleanos", "Enteros", "Cadenas", "Nulos"],
+        ok: 0,
+        exp: "True y False son valores booleanos (lógicos), con mayúscula inicial en Python." },
+      { q: "¿Cómo se crea una lista correctamente?",
+        ops: ["lista = (1, 2, 3)", "lista = [1, 2, 3]", "lista = {1, 2, 3}", "lista = «1, 2, 3»"],
+        ok: 1,
+        exp: "Las listas van entre corchetes: [1, 2, 3] y pueden modificarse después." },
+      { q: "¿Qué devuelve len('hola')?",
+        ops: ["3", "4", "'hola'", "Error"],
+        ok: 1,
+        exp: "len() devuelve la longitud: la palabra 'hola' tiene 4 letras." },
+      { q: "¿Qué función lee lo que el usuario escribe por teclado?",
+        ops: ["input()", "read()", "ask()", "teclado()"],
+        ok: 0,
+        exp: "input() pausa el programa, espera texto y lo devuelve como cadena (str)." },
+      { q: "¿Cómo conviertes el texto '25' a número entero?",
+        ops: ["int('25')", "number('25')", "textToInt('25')", "integer('25')"],
+        ok: 0,
+        exp: "int('25') convierte cadena a entero. También existen float(), str() y bool()." },
+      { q: "¿Con qué palabra clave se define una función?",
+        ops: ["function", "def", "func", "define"],
+        ok: 1,
+        exp: "def saludar(): define una función seguida de dos puntos e indentación." },
+      { q: "¿Qué operador se usa para sumar dos números?",
+        ops: ["+", "&", "plus", "sum"],
+        ok: 0,
+        exp: "El signo + suma números (y también concatena textos: 'ho' + 'la' = 'hola')." },
+      { q: "¿Qué imprime print('ab' * 3)?",
+        ops: ["ab3", "ab ab ab", "ababab", "Error"],
+        ok: 2,
+        exp: "Multiplicar texto por un número lo repite: 'ab' * 3 da 'ababab'." },
+      { q: "¿Qué estructura repite código MIENTRAS una condición sea verdadera?",
+        ops: ["for", "while", "if", "switch"],
+        ok: 1,
+        exp: "while repite mientras la condición sea verdadera. for recorre secuencias." },
+      { q: "¿Qué imprime este código? if 5 > 3: print('A') else: print('B')",
+        ops: ["B", "A", "A y B", "Error"],
+        ok: 1,
+        exp: "Como 5 es mayor que 3, la condición es verdadera y se ejecuta la rama del if: imprime 'A'." }
+    ]
+  },
+  {
+    id: "htmlcss",
+    titulo: "HTML y CSS",
+    desc: "Etiquetas esenciales, estructura de una página web y estilos básicos.",
+    badge: "WEB",
+    color: "#fb7185",
+    preguntas: [
+      { q: "¿Qué significan las siglas HTML?",
+        ops: ["HyperText Markup Language", "High Tech Modern Language", "Home Tool Markup Language", "Hyperlink Text Machine Language"],
+        ok: 0,
+        exp: "HTML = HyperText Markup Language, el lenguaje que estructura toda página web." },
+      { q: "¿Qué etiqueta contiene TODO el contenido visible de la página?",
+        ops: ["<head>", "<body>", "<main>", "<html>"],
+        ok: 1,
+        exp: "<body> muestra textos, imágenes y botones. <head> guarda metadatos invisibles." },
+      { q: "¿Qué etiqueta crea un párrafo de texto?",
+        ops: ["<texto>", "<par>", "<p>", "<pr>"],
+        ok: 2,
+        exp: "<p>Aquí va el texto</p> define un párrafo." },
+      { q: "¿Cuál es la etiqueta del título MÁS importante de la página?",
+        ops: ["<title>", "<header>", "<h1>", "<top>"],
+        ok: 2,
+        exp: "<h1> es el encabezado principal. Los títulos bajan de importancia hasta <h6>." },
+      { q: "¿Qué etiqueta inserta una imagen?",
+        ops: ["<image>", "<img>", "<foto>", "<pic>"],
+        ok: 1,
+        exp: "<img src='foto.jpg' alt='descripción'> incrusta imágenes. La etiqueta <image> no existe." },
+      { q: "¿Qué atributo de <img> indica la ruta del archivo?",
+        ops: ["href", "src", "link", "url"],
+        ok: 1,
+        exp: "src (source) indica de dónde viene la imagen. href se usa en enlaces." },
+      { q: "¿Qué etiqueta crea un enlace (hipervínculo)?",
+        ops: ["<a>", "<link>", "<href>", "<go>"],
+        ok: 0,
+        exp: "<a href='https://ejemplo.com'>Clic aquí</a> crea un enlace clicable." },
+      { q: "¿Para qué sirven CSS y HTML juntos?",
+        ops: ["CSS estructura, HTML decora", "HTML estructura el contenido y CSS le da estilo", "Ambos hacen lo mismo", "CSS reemplaza al HTML moderno"],
+        ok: 1,
+        exp: "Regla de oro: HTML pone el contenido/estructura, CSS pone la apariencia (colores, tamaños, posición)." },
+      { q: "¿Dónde va el CSS interno dentro del documento?",
+        ops: ["Entre <style> y </style>", "Entre <script> y </script>", "Directo en <body>", "Entre <meta> tags"],
+        ok: 0,
+        exp: "El CSS interno vive en la etiqueta <style>, generalmente dentro de <head>." },
+      { q: "¿Qué propiedad CSS cambia el color de FONDO?",
+        ops: ["color", "bg-color", "background-color", "fill"],
+        ok: 2,
+        exp: "background-color pinta el fondo; color cambia el color del texto." },
+      { q: "¿Cómo seleccionas un elemento por su CLASE en CSS?",
+        ops: ["#menu { }", ".menu { }", "menu { }", "*menu { }"],
+        ok: 1,
+        exp: "El punto (.) selecciona clases; la almohadilla (#) selecciona ids." },
+      { q: "¿Qué hace display: flex en un contenedor?",
+        ops: ["Oculta sus elementos hijos", "Pone los elementos en fila y permite alinearlos fácilmente", "Aplica sombra 3D", "Hace zoom a la página"],
+        ok: 1,
+        exp: "Flexbox organiza los hijos en filas o columnas con alineación flexible. Hoy es el estándar." }
+    ]
+  },
+  {
+    id: "git",
+    titulo: "Git y GitHub",
+    desc: "Conceptos iniciales de control de versiones y trabajo en equipo.",
+    badge: "GIT",
+    color: "#f59e0b",
+    preguntas: [
+      { q: "¿Qué es Git?",
+        ops: ["Un lenguaje de programación", "Un sistema de control de versiones", "Una base de datos", "Un navegador web"],
+        ok: 1,
+        exp: "Git registra el historial de cambios de tus archivos, permitiendo volver atrás y colaborar." },
+      { q: "¿Para qué sirve el control de versiones?",
+        ops: ["Para hacer la página más rápida", "Para guardar el historial de cambios y trabajar en equipo sin pisarse", "Para dibjar interfaces", "Para programar más rápido"],
+        ok: 1,
+        exp: "Guarda 'fotos' (commits) del proyecto: puedes recuperar versiones anteriores y fusionar el trabajo de varias personas." },
+      { q: "¿Qué comando INICIA un repositorio nuevo en una carpeta?",
+        ops: ["git start", "git new", "git init", "git create"],
+        ok: 2,
+        exp: "git init convierte la carpeta actual en repositorio creando la carpeta oculta .git." },
+      { q: "¿Qué comando prepara archivos antes de guardarlos?",
+        ops: ["git prepare", "git add", "git stage", "git take"],
+        ok: 1,
+        exp: "git add archivo marca qué cambios quieres incluir. Con git add . preparas todo." },
+      { q: "¿Qué comando GUARDA los cambios preparados en el historial?",
+        ops: ["git commit", "git save", "git push", "git store"],
+        ok: 0,
+        exp: "git commit -m 'mensaje' crea una foto del proyecto con un mensaje descriptivo." },
+      { q: "¿Qué comando muestra el historial de commits?",
+        ops: ["git history", "git log", "git list", "git past"],
+        ok: 1,
+        exp: "git log lista todos los commits con su autor, fecha y mensaje." },
+      { q: "¿Cuál es la diferencia entre Git y GitHub?",
+        ops: ["Son exactamente lo mismo", "GitHub es el nuevo nombre de Git", "Git es la herramienta local; GitHub aloja repositorios en la nube", "Git es de pago y GitHub es gratis"],
+        ok: 2,
+        exp: "Git funciona en tu computadora; GitHub es una plataforma web donde subes repositorios para compartir y colaborar." },
+      { q: "¿Qué comando descarga un repositorio completo desde GitHub?",
+        ops: ["git download", "git clone", "git copy", "git pull"],
+        ok: 1,
+        exp: "git clone https://github.com/user/repo.git copia el proyecto completo a tu computadora." },
+      { q: "¿Qué comando SUBE tus commits al repositorio remoto?",
+        ops: ["git upload", "git push", "git send", "git remote"],
+        ok: 1,
+        exp: "git push envía tus commits locales a GitHub (o al servidor remoto que uses)." },
+      { q: "¿Y qué comando DESCARGA los cambios nuevos del remoto a tu computadora?",
+        ops: ["git pull", "git fetch down", "git get", "git sync"],
+        ok: 0,
+        exp: "git pull trae e integra los últimos cambios publicados por otros compañeros." },
+      { q: "¿Para qué sirven las ramas (branches)?",
+        ops: ["Para borrar el historial", "Para trabajar en funciones nuevas aparte sin romper la versión principal", "Para cifrar el código", "Para hacer backups automáticos"],
+        ok: 1,
+        exp: "Una rama es una línea de trabajo paralela. Al terminar, se fusiona con la rama principal (main) mediante merge." },
+      { q: "¿Qué archivo le dice a Git qué carpetas/archivos IGNORAR?",
+        ops: [".gitignore", ".ignoreme", "git.config", ".skip"],
+        ok: 0,
+        exp: ".gitignore evita subir cosas como contraseñas, node_modules o archivos temporales." }
+    ]
+  }
+];
+
+let actual = 0, puntos = 0, aciertos = 0, fallos = 0, agotados = 0, respondido = false;
+let quizActual = null;
+let tiempoRestante = TIEMPO_PREGUNTA;
+let intervaloTimer = null;
+let respuestas = [];
+let racha = 0;
+
+const $lobby = document.getElementById("pantalla-lobby");
+const $quiz = document.getElementById("pantalla-quiz");
+const $final = document.getElementById("pantalla-final");
+const letras = ["A", "B", "C", "D"];
+const $reloj = document.getElementById("reloj");
+const $anillo = document.getElementById("anillo");
+const $tiempoNum = document.getElementById("tiempo-num");
+const LONGITUD_ANILLO = 2 * Math.PI * 26;
+$anillo.style.strokeDasharray = LONGITUD_ANILLO;
+
+const ICONOS = {
+  sql: '<svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="#a5b4fc" stroke-width="1.8" stroke-linecap="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 5v14c0 1.66-4.03 3-9 3s-9-1.34-9-3V5"/><path d="M3 12c0 1.66 4.03 3 9 3s9-1.34 9-3"/></svg>',
+  mysql: '<svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="#67e8f9" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/><line x1="7" y1="15" x2="13" y2="15"/><circle cx="17.5" cy="15" r="0.5" fill="#67e8f9"/></svg>',
+  python: '<svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="#93c5fd" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/><line x1="14" y1="4" x2="10" y2="20"/></svg>',
+  htmlcss: '<svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="#fda4af" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>',
+  git: '<svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="#fcd34d" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="3" x2="6" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></svg>'
+};
+
+function mejorPuntaje(id) {
+  try { return localStorage.getItem("cyberquiz_best_" + id); } catch (e) { return null; }
+}
+
+function guardarMejor(id, pct) {
+  try {
+    const previo = parseInt(mejorPuntaje(id) || "0", 10);
+    if (pct > previo) localStorage.setItem("cyberquiz_best_" + id, String(pct));
+  } catch (e) {}
+}
+
+function mezclar(arr) {
+  const copia = [...arr];
+  for (let i = copia.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copia[i], copia[j]] = [copia[j], copia[i]];
+  }
+  return copia;
+}
+
+const CATEGORIAS = [
+  {
+    id: "datos",
+    titulo: "Base de Datos",
+    desc: "Todo sobre bases de datos: el lenguaje SQL y la administración del servidor.",
+    badge: "DATOS",
+    color: "#00b4d8",
+    quizzes: ["sql", "mysql"],
+    icono: '<svg viewBox="0 0 24 24" fill="none" stroke="#67e8f9" stroke-width="1.8" stroke-linecap="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 5v14c0 1.66-4.03 3-9 3s-9-1.34-9-3V5"/><path d="M3 12c0 1.66 4.03 3 9 3s9-1.34 9-3"/></svg>'
+  },
+  {
+    id: "programacion",
+    titulo: "Programación",
+    desc: "Lenguajes y tecnologías para crear páginas y aplicaciones web.",
+    badge: "CÓDIGO",
+    color: "#8b5cf6",
+    quizzes: ["python", "htmlcss"],
+    icono: '<svg viewBox="0 0 24 24" fill="none" stroke="#c4b5fd" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>'
+  },
+  {
+    id: "herramientas",
+    titulo: "Herramientas Dev",
+    desc: "Control de versiones y utilidades esenciales del programador.",
+    badge: "DEV",
+    color: "#f59e0b",
+    quizzes: ["git"],
+    icono: '<svg viewBox="0 0 24 24" fill="none" stroke="#fcd34d" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="3" x2="6" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></svg>'
+  }
+];
+
+let categoriaAbierta = null;
+
+function totalPreguntasCat(cat) {
+  return cat.quizzes.reduce((suma, id) => {
+    const qz = quizzes.find(q => q.id === id);
+    return suma + (qz ? qz.preguntas.length : 0);
+  }, 0);
+}
+
+function crearTarjetaQuiz(qz, idx) {
+  const btn = document.createElement("button");
+  btn.className = "tarjeta-quiz";
+  btn.style.setProperty("--color-tarjeta", qz.color);
+  btn.style.setProperty("--glow", qz.color + "44");
+  btn.style.setProperty("--d", idx);
+  const best = mejorPuntaje(qz.id);
+  btn.innerHTML = `
+    <div class="fila-icono">
+      <span class="badge" style="background:${qz.color}">${qz.badge}</span>
+      ${ICONOS[qz.id] || ""}
+    </div>
+    <h3>${qz.titulo}</h3>
+    <p>${qz.desc}</p>
+    <div class="fila-icono" style="justify-content:flex-start; gap:12px;">
+      <span class="num-preguntas"><span class="punto-color"></span>${qz.preguntas.length} preguntas</span>
+      ${best !== null ? `<span class="mejor-puntaje">Mejor ${best}%</span>` : ""}
+    </div>`;
+  btn.onclick = () => iniciarQuiz(qz.id);
+  return btn;
+}
+
+function abrirLobby() {
+  detenerTimer();
+  categoriaAbierta = null;
+  pintarCategorias();
+  document.getElementById("btn-atras").classList.add("oculto");
+  $quiz.classList.add("oculto");
+  $final.classList.add("oculto");
+  document.getElementById("pantalla-categoria").classList.add("oculto");
+  $lobby.classList.remove("oculto");
+}
+
+function abrirCategoria(id) {
+  categoriaAbierta = id;
+  const cat = CATEGORIAS.find(c => c.id === id);
+  document.getElementById("cat-titulo").textContent = cat.titulo;
+  document.getElementById("cat-sub").textContent = cat.desc;
+  document.getElementById("cat-icono").innerHTML = cat.icono;
+  const caja = document.getElementById("cat-icono-box");
+  caja.style.background = cat.color + "26";
+  caja.style.borderColor = cat.color + "77";
+  const cont = document.getElementById("categoria-grid");
+  cont.innerHTML = "";
+  cat.quizzes.forEach((qid, idx) => {
+    const qz = quizzes.find(q => q.id === qid);
+    cont.appendChild(crearTarjetaQuiz(qz, idx));
+  });
+  $lobby.classList.add("oculto");
+  $quiz.classList.add("oculto");
+  $final.classList.add("oculto");
+  document.getElementById("btn-atras").classList.remove("oculto");
+  reiniciarAnimacion(document.getElementById("pantalla-categoria"));
+  document.getElementById("pantalla-categoria").classList.remove("oculto");
+}
+
+function volverAtras() {
+  if (!document.getElementById("pantalla-categoria").classList.contains("oculto")) {
+    abrirLobby();
+  } else if (categoriaAbierta && CATEGORIAS.some(c => c.id === categoriaAbierta)) {
+    abrirCategoria(categoriaAbierta);
+  } else {
+    abrirLobby();
+  }
+}
+
+function pintarCategorias() {
+  const cont = document.getElementById("lobby-grid");
+  cont.innerHTML = "";
+  CATEGORIAS.forEach((cat, idx) => {
+    const btn = document.createElement("button");
+    btn.className = "tarjeta-quiz";
+    btn.style.setProperty("--color-tarjeta", cat.color);
+    btn.style.setProperty("--glow", cat.color + "44");
+    btn.style.setProperty("--d", idx);
+    btn.innerHTML = `
+      <div class="fila-icono">
+        <span class="badge" style="background:${cat.color}">${cat.badge}</span>
+        <span class="icono-categoria" style="background:${cat.color}26">${cat.icono}</span>
+      </div>
+      <h3>${cat.titulo}</h3>
+      <p>${cat.desc}</p>
+      <span class="num-preguntas"><span class="punto-color"></span>${cat.quizzes.length} quiz${cat.quizzes.length > 1 ? "zes" : ""} · ${totalPreguntasCat(cat)} preguntas</span>`;
+    btn.onclick = () => abrirCategoria(cat.id);
+    cont.appendChild(btn);
+  });
+}
+
+function iniciarQuiz(id) {
+  const origen = quizzes.find(qz => qz.id === id);
+  const catPadre = CATEGORIAS.find(c => c.quizzes.includes(id));
+  categoriaAbierta = catPadre ? catPadre.id : null;
+  quizActual = { ...origen, preguntas: mezclar(origen.preguntas) };
+  actual = 0; puntos = 0; aciertos = 0; fallos = 0; agotados = 0; racha = 0;
+  respuestas = new Array(quizActual.preguntas.length).fill(null);
+  document.getElementById("tema-actual").textContent = quizActual.badge + " · " + quizActual.titulo.toUpperCase();
+  document.getElementById("racha").classList.remove("visible");
+  $lobby.classList.add("oculto");
+  $final.classList.add("oculto");
+  document.getElementById("btn-atras").classList.remove("oculto");
+  reiniciarAnimacion($quiz);
+  mostrarPregunta();
+}
+
+function reiniciarAnimacion(el) {
+  el.classList.remove("oculto");
+  el.style.animation = "none";
+  void el.offsetWidth;
+  el.style.animation = "";
+}
+
+function mostrarPregunta() {
+  respondido = false;
+  const p = quizActual.preguntas[actual];
+  const total = quizActual.preguntas.length;
+  document.getElementById("contador").textContent = `Pregunta ${actual + 1} de ${total}`;
+  document.getElementById("puntos").textContent = `${puntos} pts`;
+  document.getElementById("relleno").style.width = `${(actual / total) * 100}%`;
+  pintarDots();
+  const $preguntaEl = document.getElementById("pregunta");
+  $preguntaEl.textContent = p.q;
+  $preguntaEl.classList.remove("animar");
+  void $preguntaEl.offsetWidth;
+  $preguntaEl.classList.add("animar");
+  document.getElementById("zona-resultado").style.display = "none";
+  document.getElementById("zona-siguiente").style.display = "none";
+
+  const cont = document.getElementById("opciones");
+  cont.classList.remove("animar");
+  cont.innerHTML = "";
+  p.ops.forEach((texto, i) => {
+    const btn = document.createElement("button");
+    btn.className = "opcion";
+    btn.style.setProperty("--o", i);
+    btn.innerHTML = `<span class="letra">${letras[i]}</span><span>${texto}</span>`;
+    btn.onclick = () => responder(i, btn);
+    cont.appendChild(btn);
+  });
+  void cont.offsetWidth;
+  cont.classList.add("animar");
+
+  iniciarTimer();
+}
+
+function pintarDots() {
+  const cont = document.getElementById("dots");
+  cont.innerHTML = "";
+  respuestas.forEach((estado, i) => {
+    const d = document.createElement("span");
+    d.className = "dot" + (estado ? " " + estado : "") + (i === actual ? " actual" : "");
+    cont.appendChild(d);
+  });
+}
+
+function actualizarDotActual(estado) {
+  respuestas[actual] = estado;
+  pintarDots();
+}
+
+function iniciarTimer() {
+  detenerTimer();
+  tiempoRestante = TIEMPO_PREGUNTA;
+  pintarTimer();
+  intervaloTimer = setInterval(() => {
+    tiempoRestante -= 0.1;
+    if (tiempoRestante <= 0) {
+      tiempoRestante = 0;
+      pintarTimer();
+      detenerTimer();
+      expirar();
+    } else {
+      pintarTimer();
+    }
+  }, 100);
+}
+
+function detenerTimer() {
+  if (intervaloTimer) {
+    clearInterval(intervaloTimer);
+    intervaloTimer = null;
+  }
+}
+
+function pintarTimer() {
+  const pct = Math.max(0, tiempoRestante / TIEMPO_PREGUNTA);
+  $tiempoNum.textContent = Math.ceil(tiempoRestante);
+  $anillo.style.strokeDashoffset = String(LONGITUD_ANILLO * (1 - pct));
+  $reloj.classList.remove("medio", "critico");
+  if (pct <= 0.2) {
+    $reloj.classList.add("critico");
+  } else if (pct <= 0.5) {
+    $reloj.classList.add("medio");
+  }
+}
+
+function revelarRespuesta(correctaIdx) {
+  const botones = document.querySelectorAll(".opcion");
+  botones.forEach(b => b.disabled = true);
+  if (correctaIdx !== null) botones[correctaIdx].classList.add("correcta");
+}
+
+function mostrarExplicacion(tipo, textoExtra) {
+  const etiqueta = document.getElementById("etiqueta-resultado");
+  etiqueta.className = "";
+  etiqueta.classList.add(tipo);
+  etiqueta.textContent = textoExtra;
+  const exp = document.getElementById("explicacion");
+  exp.textContent = quizActual.preguntas[actual].exp;
+  document.getElementById("zona-resultado").style.display = "block";
+}
+
+function responder(i, btn) {
+  if (respondido) return;
+  respondido = true;
+  detenerTimer();
+  const p = quizActual.preguntas[actual];
+
+  if (i === p.ok) {
+    puntos += 10 + racha * 2;
+    aciertos++;
+    racha++;
+    btn.classList.add("correcta");
+    revelarRespuesta(null);
+    mostrarExplicacion("bien", racha >= 3 ? `¡Correcto! Racha de ${racha} · +${10 + (racha - 1) * 2} pts` : "¡Correcto! +10 pts");
+    actualizarDotActual("ok");
+  } else {
+    fallos++;
+    racha = 0;
+    btn.classList.add("incorrecta");
+    revelarRespuesta(p.ok);
+    mostrarExplicacion("mal", "Incorrecto.");
+    actualizarDotActual("mal");
+  }
+
+  document.getElementById("puntos").textContent = `${puntos} pts`;
+  pintarRacha();
+  prepararBotonSiguiente();
+}
+
+function pintarRacha() {
+  const chip = document.getElementById("racha");
+  if (racha >= 2) {
+    document.getElementById("num-racha").textContent = racha;
+    chip.classList.remove("visible");
+    void chip.offsetWidth;
+    chip.classList.add("visible");
+  } else {
+    chip.classList.remove("visible");
+  }
+}
+
+function expirar() {
+  if (respondido) return;
+  respondido = true;
+  agotados++;
+  racha = 0;
+  revelarRespuesta(quizActual.preguntas[actual].ok);
+  mostrarExplicacion("tiempo", "¡Tiempo agotado!");
+  actualizarDotActual("to");
+  prepararBotonSiguiente(true);
+}
+
+function prepararBotonSiguiente(auto) {
+  const total = quizActual.preguntas.length;
+  const btnSig = document.getElementById("btn-siguiente");
+  btnSig.textContent = actual === total - 1 ? "Ver resultados →" : "Siguiente →";
+  document.getElementById("zona-siguiente").style.display = "block";
+  if (auto) {
+    setTimeout(() => {
+      if (respondido && !$quiz.classList.contains("oculto")) btnSig.click();
+    }, 2200);
+  }
+}
+
+document.getElementById("btn-siguiente").onclick = () => {
+  detenerTimer();
+  actual++;
+  if (actual < quizActual.preguntas.length) {
+    mostrarPregunta();
+  } else {
+    terminar();
+  }
+};
+
+function terminar() {
+  detenerTimer();
+  $quiz.classList.add("oculto");
+  reiniciarAnimacion($final);
+  const total = quizActual.preguntas.length;
+  const pct = Math.round((aciertos / total) * 100);
+  let msg;
+  if (pct >= 90) msg = "¡Excelente! Nivel experto.";
+  else if (pct >= 70) msg = "¡Muy bien! Dominas lo esencial.";
+  else if (pct >= 50) msg = "Bien, pero conviene repasar un poco.";
+  else msg = "Hay que estudiar más... ¡a por ello!";
+  document.getElementById("tema-final").textContent = quizActual.badge + " · " + quizActual.titulo.toUpperCase();
+  document.getElementById("puntaje-final").textContent = `${pct}%`;
+  document.getElementById("mensaje-final").textContent = msg;
+  document.getElementById("stat-ok").textContent = aciertos;
+  document.getElementById("stat-mal").textContent = fallos;
+  document.getElementById("stat-timeout").textContent = agotados;
+  guardarMejor(quizActual.id, pct);
+  const previoMejor = mejorPuntaje(quizActual.id) === String(pct) && pct > 0;
+  document.getElementById("detalle-final").textContent =
+    `Acertaste ${aciertos} de ${total} preguntas · Puntuación: ${puntos} pts` +
+    (previoMejor ? " · ¡Nuevo récord!" : "");
+  document.getElementById("btn-repetir").onclick = () => iniciarQuiz(quizActual.id);
+  if (pct >= 70) lanzarConfeti();
+}
+
+function lanzarConfeti() {
+  const colores = ["#6366f1", "#c084fc", "#22c55e", "#f59e0b", "#38bdf8", "#f472b6"];
+  for (let i = 0; i < 90; i++) {
+    const pieza = document.createElement("div");
+    pieza.className = "confeti";
+    pieza.style.left = Math.random() * 100 + "vw";
+    pieza.style.background = colores[Math.floor(Math.random() * colores.length)];
+    pieza.style.setProperty("--rot", (Math.random() * 720 - 360) + "deg");
+    pieza.style.setProperty("--dur", (2.2 + Math.random() * 1.8) + "s");
+    pieza.style.setProperty("--delay", (Math.random() * 0.9) + "s");
+    if (Math.random() > 0.5) pieza.style.borderRadius = "50%";
+    pieza.addEventListener("animationend", () => pieza.remove());
+    document.body.appendChild(pieza);
+  }
+}
+
+function iniciarParticulas() {
+  const canvas = document.getElementById("particulas");
+  const ctx = canvas.getContext("2d");
+  let particulas = [];
+  function redimensionar() {
+    canvas.width = innerWidth;
+    canvas.height = innerHeight;
+  }
+  redimensionar();
+  addEventListener("resize", redimensionar);
+  for (let i = 0; i < 55; i++) {
+    particulas.push({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      r: Math.random() * 2.4 + 0.6,
+      vy: -(Math.random() * 0.35 + 0.08),
+      vx: (Math.random() - 0.5) * 0.18,
+      alpha: Math.random() * 0.5 + 0.15,
+      color: Math.random() > 0.5 ? "165,180,252" : "192,132,252"
+    });
+  }
+  function animar() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    particulas.forEach(p => {
+      p.x += p.vx;
+      p.y += p.vy;
+      if (p.y < -10) { p.y = canvas.height + 10; p.x = Math.random() * canvas.width; }
+      if (p.x < -10) p.x = canvas.width + 10;
+      if (p.x > canvas.width + 10) p.x = -10;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(${p.color},${p.alpha})`;
+      ctx.shadowColor = `rgba(${p.color},0.8)`;
+      ctx.shadowBlur = 6;
+      ctx.fill();
+    });
+    requestAnimationFrame(animar);
+  }
+  animar();
+}
+iniciarParticulas();
+
+document.getElementById("btn-lobby").onclick = abrirLobby;
+document.getElementById("btn-atras").onclick = volverAtras;
+
+document.addEventListener("pointerdown", e => {
+  const el = e.target.closest(".boton, .tarjeta-quiz, .opcion, .btn-atras");
+  if (!el) return;
+  const rect = el.getBoundingClientRect();
+  const onda = document.createElement("span");
+  const tam = Math.max(rect.width, rect.height) * 2.3;
+  onda.className = "onda";
+  onda.style.width = onda.style.height = tam + "px";
+  onda.style.left = (e.clientX - rect.left) + "px";
+  onda.style.top = (e.clientY - rect.top) + "px";
+  el.appendChild(onda);
+  setTimeout(() => onda.remove(), 720);
+});
+
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape" && $lobby.classList.contains("oculto")) {
+    volverAtras();
+    return;
+  }
+  const idx = ["1", "2", "3", "4"].indexOf(e.key);
+  if (idx !== -1 && !$quiz.classList.contains("oculto")) {
+    const botones = document.querySelectorAll(".opcion");
+    if (botones[idx] && !respondido) botones[idx].click();
+  }
+  if ((e.key === "Enter" || e.key === " ") && !$quiz.classList.contains("oculto") && respondido) {
+    e.preventDefault();
+    document.getElementById("btn-siguiente").click();
+  }
+});
+
+document.querySelectorAll(".tarjeta-quiz").forEach(() => {});
+document.addEventListener("mousemove", e => {
+  document.querySelectorAll(".tarjeta-quiz").forEach(card => {
+    const rect = card.getBoundingClientRect();
+    card.style.setProperty("--mx", `${e.clientX - rect.left}px`);
+  });
+});
+
+abrirLobby();
+</script>
+</body>
+</html>
