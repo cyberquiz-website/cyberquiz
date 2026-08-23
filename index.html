@@ -246,6 +246,40 @@
   .stat span { color: var(--texto-suave); font-size: 0.84rem; font-weight: 600; }
   .stat-verde b { color: var(--verde); } .stat-rojo b { color: var(--rojo); } .stat-ambar b { color: var(--ambar); }
   .detalle-final { color: var(--texto-suave); margin-bottom: 30px; font-size: 1rem; }
+  .ranking-final { max-width: 500px; margin: 0 auto 28px; text-align: left; }
+  .ranking-final h3 {
+    font-size: 0.78rem; letter-spacing: 2.5px; text-transform: uppercase;
+    color: var(--texto-suave); text-align: center; margin-bottom: 14px;
+  }
+  .fila-rank {
+    display: flex; align-items: center; gap: 13px;
+    padding: 11px 15px; margin-bottom: 8px;
+    border-radius: 14px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    font-size: 0.93rem;
+  }
+  .fila-rank .pos {
+    width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 0.85rem;
+    background: rgba(255,255,255,0.08); color: var(--texto-suave);
+  }
+  .fila-rank.top1 .pos { background: linear-gradient(135deg,#fbbf24,#f59e0b); color: #451a03; box-shadow: 0 4px 14px rgba(245,158,11,0.35); }
+  .fila-rank.top2 .pos { background: linear-gradient(135deg,#e2e8f0,#94a3b8); color: #1e293b; }
+  .fila-rank.top3 .pos { background: linear-gradient(135deg,#fdba74,#ea580c); color: #431407; }
+  .fila-rank .info-rank { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .fila-rank .info-rank b { color: #a5b4fc; }
+  .chip-nueva {
+    flex-shrink: 0;
+    font-size: 0.66rem; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;
+    padding: 4px 10px; border-radius: 99px;
+    background: var(--acento); color: #fff;
+  }
+  .fila-rank.actual { border-color: rgba(99,102,241,0.55); background: rgba(99,102,241,0.12); }
+  .posicion-actual { text-align: center; color: var(--texto-suave); font-size: 0.85rem; margin-top: 12px; }
+  .stats-globales { text-align: center; color: var(--texto-suave); font-size: 0.92rem; margin-top: 22px; letter-spacing: 0.3px; }
+  .stats-globales b { color: var(--texto); }
   .oculto { display: none !important; }
 
   .contenedor-pagina {
@@ -274,6 +308,27 @@
   }
   .btn-atras:hover { transform: translateX(-4px); background: rgba(255,255,255,0.11); border-color: var(--acento); }
   .btn-atras svg { width: 24px; height: 24px; }
+
+  .btn-mute {
+    position: fixed;
+    top: 24px; right: 24px;
+    z-index: 30;
+    width: 54px; height: 54px;
+    border-radius: 17px;
+    background: var(--vidrio);
+    backdrop-filter: blur(20px) saturate(140%);
+    -webkit-backdrop-filter: blur(20px) saturate(140%);
+    border: 1px solid rgba(255,255,255,0.14);
+    color: var(--texto-suave);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 10px 28px rgba(0,0,0,0.4);
+    transition: transform 0.25s cubic-bezier(.34,1.56,.64,1), background 0.2s, border-color 0.2s, color 0.2s;
+  }
+  .btn-mute:hover { transform: translateY(-3px) scale(1.05); background: rgba(255,255,255,0.11); border-color: var(--acento); color: var(--texto); }
+  .btn-mute:active { transform: scale(0.88); transition-duration: 0.09s; }
+  .btn-mute svg { width: 24px; height: 24px; }
+  .btn-mute.apagado { color: var(--rojo); }
 
   .boton, .opcion, .btn-atras { position: relative; overflow: hidden; -webkit-tap-highlight-color: transparent; }
 
@@ -431,6 +486,8 @@
     .fila-info { margin-top: 10px; margin-bottom: 12px; }
     #zona-siguiente { margin-top: 16px; }
     .btn-atras { margin-bottom: 10px; width: 48px; height: 48px; }
+    .btn-mute { top: 14px; right: 14px; width: 46px; height: 46px; border-radius: 14px; }
+    .btn-mute svg { width: 21px; height: 21px; }
     #explicacion { margin-top: 16px; padding: 13px 16px; font-size: 0.92rem; }
     #zona-resultado { margin-top: 16px; }
   }
@@ -465,6 +522,8 @@
 <canvas id="particulas"></canvas>
 <div class="vineta"></div>
 
+<button class="btn-mute" id="btn-mute" title="Sonido (M)" aria-label="Activar o silenciar sonido"></button>
+
 <div class="contenedor-pagina">
 
 <button class="btn-atras oculto" id="btn-atras" title="Volver al inicio" aria-label="Volver al inicio">
@@ -491,6 +550,7 @@
   </div>
   <p class="subtitulo">Elige un tema · 30 segundos por pregunta · orden aleatorio</p>
   <div class="lobby-grid" id="lobby-grid"></div>
+  <p class="stats-globales" id="stats-globales" style="display:none"></p>
 </div>
 
 <div class="tarjeta oculto" id="pantalla-categoria">
@@ -544,6 +604,7 @@
     <div class="stat stat-ambar"><b id="stat-timeout">0</b><span>Sin responder</span></div>
   </div>
   <p class="detalle-final" id="detalle-final"></p>
+  <div class="ranking-final" id="ranking-final"></div>
   <div class="zona-botones-final">
     <button class="boton" id="btn-repetir">Jugar otra vez</button>
     <button class="boton boton-secundario" id="btn-lobby">Volver al inicio</button>
@@ -884,6 +945,103 @@ const ICONOS = {
   git: '<svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="#fcd34d" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="3" x2="6" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></svg>'
 };
 
+let ctxAudio = null;
+let silencio = false;
+try { silencio = localStorage.getItem("cyberquiz_mute") === "1"; } catch (e) {}
+
+function audioCtx() {
+  if (!ctxAudio) {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return null;
+    ctxAudio = new AC();
+  }
+  if (ctxAudio.state === "suspended") ctxAudio.resume();
+  return ctxAudio;
+}
+
+function tono(freq, inicio, dur, tipo, vol, freqFin) {
+  const ctx = audioCtx();
+  if (!ctx || silencio) return;
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  const t0 = ctx.currentTime + inicio;
+  osc.type = tipo || "sine";
+  osc.frequency.setValueAtTime(freq, t0);
+  if (freqFin) osc.frequency.exponentialRampToValueAtTime(freqFin, t0 + dur);
+  gain.gain.setValueAtTime(0.0001, t0);
+  gain.gain.exponentialRampToValueAtTime(vol || 0.15, t0 + 0.015);
+  gain.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+  osc.start(t0);
+  osc.stop(t0 + dur + 0.05);
+}
+
+const sonidos = {
+  acierto(racha) {
+    const s = Math.pow(1.06, Math.min(racha || 0, 8));
+    tono(520 * s, 0, 0.12, "sine", 0.16);
+    tono(780 * s, 0.09, 0.16, "sine", 0.14);
+  },
+  fallo() { tono(200, 0, 0.22, "sawtooth", 0.09, 90); },
+  tiempoAgotado() {
+    tono(660, 0, 0.09, "square", 0.06);
+    tono(660, 0.13, 0.09, "square", 0.06);
+    tono(440, 0.28, 0.3, "square", 0.06);
+  },
+  victoria() {
+    [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => tono(f, i * 0.12, 0.22, "triangle", 0.15));
+  },
+  derrota() {
+    tono(392, 0, 0.25, "triangle", 0.11);
+    tono(311.13, 0.22, 0.4, "triangle", 0.11);
+  }
+};
+
+const ICONO_SONIDO_ON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/></svg>';
+const ICONO_SONIDO_OFF = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>';
+const $mute = document.getElementById("btn-mute");
+
+function pintarMute() {
+  $mute.innerHTML = silencio ? ICONO_SONIDO_OFF : ICONO_SONIDO_ON;
+  $mute.classList.toggle("apagado", silencio);
+}
+
+function alternarSonido() {
+  silencio = !silencio;
+  try { localStorage.setItem("cyberquiz_mute", silencio ? "1" : "0"); } catch (e) {}
+  pintarMute();
+  if (!silencio) tono(660, 0, 0.1, "sine", 0.12);
+}
+$mute.onclick = alternarSonido;
+pintarMute();
+
+const CLAVE_HISTORIAL = "cyberquiz_historial";
+
+function cargarHistorial() {
+  try {
+    const arr = JSON.parse(localStorage.getItem(CLAVE_HISTORIAL) || "[]");
+    return Array.isArray(arr) ? arr : [];
+  } catch (e) { return []; }
+}
+
+function guardarEnHistorial(registro) {
+  try {
+    const lista = cargarHistorial();
+    lista.push(registro);
+    localStorage.setItem(CLAVE_HISTORIAL, JSON.stringify(lista.slice(-80)));
+  } catch (e) {}
+}
+
+function pintarStatsGlobales() {
+  const el = document.getElementById("stats-globales");
+  const lista = cargarHistorial();
+  if (!lista.length) { el.style.display = "none"; return; }
+  const respondidas = lista.reduce((s, r) => s + (r.resp || 0), 0);
+  el.innerHTML = `Has jugado <b>${lista.length}</b> partida${lista.length !== 1 ? "s" : ""} · <b>${respondidas}</b> preguntas respondidas`;
+  el.style.display = "block";
+}
+
 function mejorPuntaje(id) {
   try { return localStorage.getItem("cyberquiz_best_" + id); } catch (e) { return null; }
 }
@@ -969,6 +1127,7 @@ function abrirLobby() {
   detenerTimer();
   categoriaAbierta = null;
   pintarCategorias();
+  pintarStatsGlobales();
   document.getElementById("btn-atras").classList.add("oculto");
   $quiz.classList.add("oculto");
   $final.classList.add("oculto");
@@ -1167,6 +1326,7 @@ function responder(i, btn) {
     btn.classList.add("correcta");
     revelarRespuesta(null);
     mostrarExplicacion("bien", racha >= 3 ? `¡Correcto! Racha de ${racha} · +${10 + (racha - 1) * 2} pts` : "¡Correcto! +10 pts");
+    sonidos.acierto(racha);
     actualizarDotActual("ok");
   } else {
     fallos++;
@@ -1174,6 +1334,7 @@ function responder(i, btn) {
     btn.classList.add("incorrecta");
     revelarRespuesta(p.ok);
     mostrarExplicacion("mal", "Incorrecto.");
+    sonidos.fallo();
     actualizarDotActual("mal");
   }
 
@@ -1201,6 +1362,7 @@ function expirar() {
   racha = 0;
   revelarRespuesta(quizActual.preguntas[actual].ok);
   mostrarExplicacion("tiempo", "¡Tiempo agotado!");
+  sonidos.tiempoAgotado();
   actualizarDotActual("to");
   prepararBotonSiguiente(true);
 }
@@ -1251,6 +1413,41 @@ function terminar() {
     (previoMejor ? " · ¡Nuevo récord!" : "");
   document.getElementById("btn-repetir").onclick = () => iniciarQuiz(quizActual.id);
   if (pct >= 70) lanzarConfeti();
+  const registro = {
+    id: quizActual.id,
+    badge: quizActual.badge,
+    pct: pct,
+    puntos: puntos,
+    ok: aciertos,
+    resp: aciertos + fallos + agotados,
+    fecha: Date.now()
+  };
+  guardarEnHistorial(registro);
+  pintarRankingFinal(registro);
+  setTimeout(() => (pct >= 70 ? sonidos.victoria() : sonidos.derrota()), 350);
+}
+
+function pintarRankingFinal(actual) {
+  const caja = document.getElementById("ranking-final");
+  const lista = cargarHistorial()
+    .filter(r => r.id === actual.id)
+    .sort((a, b) => b.pct - a.pct || b.puntos - a.puntos || a.fecha - b.fecha);
+  const top = lista.slice(0, 3);
+  const posicion = lista.findIndex(r => r.fecha === actual.fecha) + 1;
+  const fmtFecha = f => {
+    const d = new Date(f);
+    return d.getDate() + "/" + (d.getMonth() + 1) + "/" + String(d.getFullYear()).slice(2);
+  };
+  caja.innerHTML =
+    "<h3>Tus mejores partidas · " + actual.badge + "</h3>" +
+    top.map((r, i) =>
+      `<div class="fila-rank top${i + 1}${r.fecha === actual.fecha ? " actual" : ""}">` +
+      `<span class="pos">${i + 1}</span>` +
+      `<span class="info-rank"><b>${r.pct}%</b> · ${r.puntos} pts · ${fmtFecha(r.fecha)}</span>` +
+      (r.fecha === actual.fecha ? '<span class="chip-nueva">Esta partida</span>' : "") +
+      "</div>"
+    ).join("") +
+    `<p class="posicion-actual">Quedaste en el puesto <b>${posicion}</b> de ${lista.length} partida${lista.length !== 1 ? "s" : ""} de este quiz</p>`;
 }
 
 function lanzarConfeti() {
@@ -1313,9 +1510,10 @@ iniciarParticulas();
 
 document.getElementById("btn-lobby").onclick = abrirLobby;
 document.getElementById("btn-atras").onclick = volverAtras;
+document.addEventListener("pointerdown", () => audioCtx(), { once: true });
 
 document.addEventListener("pointerdown", e => {
-  const el = e.target.closest(".boton, .tarjeta-quiz, .opcion, .btn-atras");
+  const el = e.target.closest(".boton, .tarjeta-quiz, .opcion, .btn-atras, .btn-mute");
   if (!el) return;
   const rect = el.getBoundingClientRect();
   const onda = document.createElement("span");
@@ -1329,6 +1527,10 @@ document.addEventListener("pointerdown", e => {
 });
 
 document.addEventListener("keydown", e => {
+  if ((e.key === "m" || e.key === "M") && !e.ctrlKey && !e.metaKey && !e.altKey) {
+    alternarSonido();
+    return;
+  }
   if (e.key === "Escape" && $lobby.classList.contains("oculto")) {
     volverAtras();
     return;
