@@ -280,6 +280,91 @@
   .posicion-actual { text-align: center; color: var(--texto-suave); font-size: 0.85rem; margin-top: 12px; }
   .stats-globales { text-align: center; color: var(--texto-suave); font-size: 0.92rem; margin-top: 22px; letter-spacing: 0.3px; }
   .stats-globales b { color: var(--texto); }
+
+  .multi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 26px; }
+  .multi-opcion {
+    background: rgba(255,255,255,0.045);
+    border: 1.5px solid rgba(255,255,255,0.09);
+    border-radius: 18px;
+    padding: 28px 22px;
+    cursor: pointer;
+    color: var(--texto);
+    text-align: center;
+    font: inherit;
+    display: flex; flex-direction: column; align-items: center; gap: 10px;
+    transition: transform 0.2s cubic-bezier(.2,.8,.3,1), border-color 0.2s, background 0.2s;
+  }
+  .multi-opcion:hover { transform: translateY(-4px); border-color: var(--acento); background: rgba(99,102,241,0.12); }
+  .multi-opcion svg { width: 44px; height: 44px; }
+  .multi-opcion h3 { font-size: 1.15rem; margin: 0; }
+  .multi-opcion p { color: var(--texto-suave); font-size: 0.88rem; margin: 0; }
+  .codigo-sala {
+    font-family: "Cascadia Code", Consolas, monospace;
+    font-size: clamp(2.6rem, 8vw, 4.2rem);
+    font-weight: 800;
+    letter-spacing: 10px;
+    background: linear-gradient(92deg, #a5b4fc, var(--acento2), #67e8f9);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    margin: 8px 0 4px;
+    user-select: all;
+  }
+  .lista-jugadores { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin: 18px 0 26px; min-height: 40px; }
+  .jugador-chip {
+    display: flex; align-items: center; gap: 8px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 99px;
+    padding: 8px 16px;
+    font-size: 0.95rem;
+    animation: entrada 0.3s cubic-bezier(.2,.8,.3,1);
+  }
+  .jugador-chip .avatar {
+    width: 26px; height: 26px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 0.8rem; color: #fff;
+    flex-shrink: 0;
+  }
+  .input-multi {
+    background: rgba(255,255,255,0.05);
+    border: 1.5px solid rgba(255,255,255,0.14);
+    border-radius: 14px;
+    color: var(--texto);
+    font: inherit;
+    font-size: 1.2rem;
+    padding: 14px 18px;
+    text-align: center;
+    outline: none;
+    width: 100%;
+    max-width: 360px;
+    letter-spacing: 2px;
+  }
+  .input-multi:focus { border-color: var(--acento); box-shadow: 0 0 0 3px rgba(99,102,241,0.25); }
+  .input-multi::placeholder { color: var(--texto-suave); letter-spacing: normal; }
+  .campo-multi { display: flex; flex-direction: column; gap: 10px; align-items: center; margin-bottom: 18px; }
+  .campo-multi label { font-size: 0.85rem; color: var(--texto-suave); letter-spacing: 1.5px; text-transform: uppercase; }
+  .podio { display: flex; align-items: flex-end; justify-content: center; gap: 14px; margin: 26px 0 30px; min-height: 130px; }
+  .podio-lugar { display: flex; flex-direction: column; align-items: center; gap: 8px; min-width: 110px; }
+  .podio-lugar .medalla {
+    width: 58px; height: 58px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 1.5rem; color: #451a03;
+  }
+  .podio-lugar.l1 .medalla { background: linear-gradient(135deg,#fbbf24,#f59e0b); box-shadow: 0 8px 24px rgba(245,158,11,0.4); }
+  .podio-lugar.l2 .medalla { background: linear-gradient(135deg,#e2e8f0,#94a3b8); color: #1e293b; }
+  .podio-lugar.l3 .medalla { background: linear-gradient(135deg,#fdba74,#ea580c); color: #431407; }
+  .podio-lugar .nombre-podio { font-weight: 700; font-size: 1rem; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .podio-lugar .puntos-podio { color: var(--texto-suave); font-size: 0.88rem; }
+  .podio-lugar.l1 { transform: scale(1.15); }
+  .multi-estado { color: var(--texto-suave); font-size: 0.95rem; margin: 14px 0; }
+  .contador-respuestas { font-size: 1.4rem; font-weight: 800; color: #a5b4fc; margin: 18px 0; }
+  .multi-error { color: var(--rojo); font-size: 0.9rem; min-height: 22px; margin-top: 10px; }
+  .pregunta-host { font-size: 1.25rem; font-weight: 700; margin: 20px 0; line-height: 1.45; }
+  @media (max-width: 640px) {
+    .multi-grid { grid-template-columns: 1fr; }
+    .podio-lugar { min-width: 90px; }
+  }
   .oculto { display: none !important; }
 
   .contenedor-pagina {
@@ -551,6 +636,12 @@
   <p class="subtitulo">Elige un tema · 30 segundos por pregunta · orden aleatorio</p>
   <div class="lobby-grid" id="lobby-grid"></div>
   <p class="stats-globales" id="stats-globales" style="display:none"></p>
+  <div style="margin-top:26px;">
+    <button class="boton boton-secundario" id="btn-multi-abrir">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px;vertical-align:-4px;margin-right:8px;"><circle cx="9" cy="8" r="4"/><path d="M2 21c0-3.9 3.1-7 7-7s7 3.1 7 7"/><circle cx="18" cy="9" r="3"/><path d="M16.5 14.6c2.9.6 5.5 3 5.5 6.4"/></svg>
+      Modo multijugador en vivo
+    </button>
+  </div>
 </div>
 
 <div class="tarjeta oculto" id="pantalla-categoria">
@@ -608,6 +699,95 @@
   <div class="zona-botones-final">
     <button class="boton" id="btn-repetir">Jugar otra vez</button>
     <button class="boton boton-secundario" id="btn-lobby">Volver al inicio</button>
+  </div>
+</div>
+
+<div class="tarjeta oculto" id="pantalla-multi-menu">
+  <div class="brillo-linea"></div>
+  <h2>Modo Multijugador</h2>
+  <p class="subtitulo" style="margin-bottom:6px">Juega en vivo contra tu salón</p>
+  <div class="multi-grid">
+    <button class="multi-opcion" id="btn-multi-crear">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#fcd34d" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 18h20"/><path d="M4 18V9l5 4 3-7 3 7 5-4v9"/></svg>
+      <h3>Crear sala</h3>
+      <p>El maestro hostea, elige el quiz y controla la partida</p>
+    </button>
+    <button class="multi-opcion" id="btn-multi-unirse">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#a5b4fc" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="4"/><path d="M2 21c0-3.9 3.1-7 7-7s7 3.1 7 7"/><circle cx="18" cy="9" r="3"/><path d="M16.5 14.6c2.9.6 5.5 3 5.5 6.4"/></svg>
+      <h3>Unirse a sala</h3>
+      <p>Los estudiantes entran con el código del maestro</p>
+    </button>
+  </div>
+  <div class="multi-error" id="multi-error-menu"></div>
+</div>
+
+<div class="tarjeta oculto" id="pantalla-multi-crear">
+  <h2>Elige el quiz de la sala</h2>
+  <p class="subtitulo">Las preguntas y respuestas se barajan para todos</p>
+  <div class="lobby-grid" id="multi-grid-quizzes"></div>
+</div>
+
+<div class="tarjeta oculto" id="pantalla-multi-sala">
+  <div class="brillo-linea"></div>
+  <p style="color:var(--texto-suave);letter-spacing:3px;font-size:0.95rem;margin-top:10px;">CÓDIGO DE LA SALA</p>
+  <div class="codigo-sala" id="multi-codigo">-----</div>
+  <p class="multi-estado">Comparte este código: tus estudiantes entran en "Unirse a sala"</p>
+  <h3 style="margin-top:14px">Jugadores conectados (<span id="multi-num-jugadores">0</span>)</h3>
+  <div class="lista-jugadores" id="multi-lista-jugadores"></div>
+  <div class="zona-botones-final">
+    <button class="boton" id="btn-multi-iniciar" disabled>Iniciar partida</button>
+    <button class="boton boton-secundario" id="btn-multi-cerrar">Cancelar sala</button>
+  </div>
+</div>
+
+<div class="tarjeta oculto" id="pantalla-multi-unirse">
+  <h2>Unirse a una sala</h2>
+  <div class="campo-multi">
+    <label>Código de la sala</label>
+    <input class="input-multi" id="multi-input-codigo" maxlength="5" placeholder="ABCDE" autocomplete="off" style="text-transform:uppercase;font-size:1.7rem;letter-spacing:10px;font-weight:700;">
+  </div>
+  <div class="campo-multi">
+    <label>Tu nombre</label>
+    <input class="input-multi" id="multi-input-nombre" maxlength="14" placeholder="Ej: Juan Pérez" autocomplete="off">
+  </div>
+  <button class="boton" id="btn-multi-entrar">Entrar a la sala</button>
+  <div class="multi-error" id="multi-error-unirse"></div>
+</div>
+
+<div class="tarjeta oculto" id="pantalla-multi-espera">
+  <h2>¡Estás dentro, <span id="multi-nombre-espera"></span>!</h2>
+  <p class="multi-estado">Esperando a que el maestro inicie la partida...</p>
+  <h3>Jugadores (<span id="multi-num-espera">1</span>)</h3>
+  <div class="lista-jugadores" id="multi-lista-espera"></div>
+</div>
+
+<div class="tarjeta oculto" id="pantalla-multi-host">
+  <span class="tema-actual" id="multi-host-tema"></span>
+  <div class="pregunta-host" id="multi-host-pregunta"></div>
+  <div class="contador-respuestas"><span id="multi-host-contador">0</span> / <span id="multi-host-total">0</span> han respondido</div>
+  <div class="barra-progreso"><div id="multi-host-relleno"></div></div>
+  <p class="multi-estado">Pregunta <span id="multi-host-num">1</span> de <span id="multi-host-de">15</span> · Cuando todos respondan o se acabe el tiempo, pasa a la siguiente</p>
+  <div class="zona-botones-final">
+    <button class="boton" id="btn-multi-ver-ranking">Ver ranking →</button>
+  </div>
+</div>
+
+<div class="tarjeta oculto" id="pantalla-multi-ranking">
+  <h2 id="multi-ranking-titulo">Ranking</h2>
+  <div id="multi-ranking-lista" style="max-width:500px;margin:0 auto;"></div>
+  <div class="zona-botones-final" id="multi-ranking-botones" style="display:none">
+    <button class="boton" id="btn-multi-siguiente">Siguiente pregunta →</button>
+  </div>
+  <p class="multi-estado" id="multi-ranking-espera" style="display:none">Esperando al maestro...</p>
+</div>
+
+<div class="tarjeta oculto" id="pantalla-multi-podio">
+  <div class="brillo-linea"></div>
+  <h2>¡Fin del juego!</h2>
+  <div class="podio" id="multi-podio"></div>
+  <div id="multi-podio-lista" style="max-width:500px;margin:0 auto 26px;"></div>
+  <div class="zona-botones-final">
+    <button class="boton" id="btn-multi-salir">Salir</button>
   </div>
 </div>
 
@@ -1172,6 +1352,7 @@ function abrirLobby() {
   categoriaAbierta = null;
   pintarCategorias();
   pintarStatsGlobales();
+  document.getElementById("btn-atras").onclick = volverAtras;
   document.getElementById("btn-atras").classList.add("oculto");
   $quiz.classList.add("oculto");
   $final.classList.add("oculto");
@@ -1371,6 +1552,10 @@ function mostrarExplicacion(tipo, textoExtra) {
 
 function responder(i, btn) {
   if (respondido) return;
+  if (mpEnMulti && mpUltimaSala && mpUltimaSala.estado === "pregunta" && !mpEsAnfitrion) {
+    mpResponder(i, btn);
+    return;
+  }
   respondido = true;
   detenerTimer();
   const p = quizActual.preguntas[actual];
@@ -1587,6 +1772,9 @@ document.addEventListener("keydown", e => {
     alternarSonido();
     return;
   }
+  if (e.key === "Escape" && mpEnMulti) {
+    return;
+  }
   if (e.key === "Escape" && $lobby.classList.contains("oculto")) {
     volverAtras();
     return;
@@ -1596,7 +1784,7 @@ document.addEventListener("keydown", e => {
     const botones = document.querySelectorAll(".opcion");
     if (botones[idx] && !respondido) botones[idx].click();
   }
-  if ((e.key === "Enter" || e.key === " ") && !$quiz.classList.contains("oculto") && respondido) {
+  if ((e.key === "Enter" || e.key === " ") && !$quiz.classList.contains("oculto") && respondido && !mpEnMulti) {
     e.preventDefault();
     document.getElementById("btn-siguiente").click();
   }
@@ -1609,6 +1797,470 @@ document.addEventListener("mousemove", e => {
     card.style.setProperty("--mx", `${e.clientX - rect.left}px`);
   });
 });
+
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyBdOXE0Vo-UJo76byb3thy5tzORXxWNpag",
+  databaseURL: "https://cyberquizz-1cbd5-default-rtdb.firebaseio.com",
+  projectId: "cyberquizz-1cbd5"
+};
+
+let fbDb = null;
+let mpSala = null;
+let mpEsAnfitrion = false;
+let mpJugadorId = null;
+let mpOffset = 0;
+let mpRefs = [];
+let mpUltimaSala = null;
+let mpUltimaRender = "";
+let mpEnMulti = false;
+
+const COLORES_AVATAR = ["#6366f1", "#8b5cf6", "#ec4899", "#f59e0b", "#10b981", "#06b6d4", "#f43f5e", "#84cc16"];
+const PANTALLAS_MULTI = ["menu", "crear", "sala", "unirse", "espera", "host", "ranking", "podio"]
+  .reduce((acc, id) => { acc[id] = document.getElementById("pantalla-multi-" + id); return acc; }, {});
+
+function mpCargado() {
+  return FIREBASE_CONFIG.apiKey.indexOf("PEGA_AQUI") === -1 && FIREBASE_CONFIG.databaseURL.indexOf("PEGA_AQUI") === -1;
+}
+
+function mpCargarSDK(cb) {
+  if (window.firebase && firebase.database) { cb(); return; }
+  const urls = [
+    "https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js",
+    "https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"
+  ];
+  let i = 0;
+  (function siguiente() {
+    if (i >= urls.length) { cb(); return; }
+    const s = document.createElement("script");
+    s.src = urls[i++];
+    s.onload = siguiente;
+    s.onerror = () => {
+      document.getElementById("multi-error-menu").textContent = "No se pudo conectar con Firebase. Revisa tu internet e intenta de nuevo.";
+    };
+    document.head.appendChild(s);
+  })();
+}
+
+function mpInit() {
+  if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
+  fbDb = firebase.database();
+  fbDb.ref(".info/serverTimeOffset").on("value", s => { mpOffset = s.val() || 0; });
+}
+
+function mpServidorAhora() { return Date.now() + mpOffset; }
+
+function generarCodigo() {
+  const abc = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let c = "";
+  for (let i = 0; i < 5; i++) c += abc[Math.floor(Math.random() * abc.length)];
+  return c;
+}
+
+function colorAvatar(nombre) {
+  let h = 0;
+  for (let i = 0; i < nombre.length; i++) h = (h * 31 + nombre.charCodeAt(i)) >>> 0;
+  return COLORES_AVATAR[h % COLORES_AVATAR.length];
+}
+
+function mpMostrarPantalla(id) {
+  [$lobby, $quiz, $final, document.getElementById("pantalla-categoria")].forEach(el => el.classList.add("oculto"));
+  Object.values(PANTALLAS_MULTI).forEach(el => el.classList.add("oculto"));
+  mpEnMulti = true;
+  if (id) reiniciarAnimacion(PANTALLAS_MULTI[id]);
+}
+
+function mpLimpiar() {
+  mpRefs.forEach(r => { try { r.off(); } catch (e) {} });
+  mpRefs = [];
+  mpSala = null;
+  mpJugadorId = null;
+  mpUltimaSala = null;
+  mpUltimaRender = "";
+  mpEnMulti = false;
+  detenerTimer();
+}
+
+function mpAbrirMenu() {
+  detenerTimer();
+  mpLimpiar();
+  mpMostrarPantalla("menu");
+  const btnAtras = document.getElementById("btn-atras");
+  btnAtras.classList.remove("oculto");
+  btnAtras.onclick = abrirLobby;
+  const err = document.getElementById("multi-error-menu");
+  if (!mpCargado()) {
+    err.textContent = "El multijugador aún no está configurado. Falta conectar Firebase.";
+  } else {
+    err.textContent = "";
+  }
+}
+
+function mpAbrirCrear() {
+  mpMostrarPantalla("crear");
+  const btnAtras = document.getElementById("btn-atras");
+  btnAtras.classList.remove("oculto");
+  btnAtras.onclick = mpAbrirMenu;
+  const cont = document.getElementById("multi-grid-quizzes");
+  cont.innerHTML = "";
+  quizzes.forEach((qz, idx) => {
+    const btn = document.createElement("button");
+    btn.className = "tarjeta-quiz";
+    btn.style.setProperty("--color-tarjeta", qz.color);
+    btn.style.setProperty("--glow", qz.color + "44");
+    btn.style.setProperty("--d", idx);
+    btn.innerHTML = `<div class="fila-icono"><span class="badge" style="background:${qz.color}">${qz.badge}</span>${ICONOS[qz.id] || ""}</div><h3>${qz.titulo}</h3><p>${qz.desc}</p><span class="num-preguntas"><span class="punto-color"></span>${qz.preguntas.length} preguntas</span>`;
+    btn.onclick = () => mpCrearSala(qz.id);
+    cont.appendChild(btn);
+  });
+}
+
+function mpCrearSala(quizId) {
+  mpCargarSDK(() => {
+    mpInit();
+    mpEsAnfitrion = true;
+    const codigo = generarCodigo();
+    const origen = quizzes.find(q => q.id === quizId);
+    const preguntas = mezclar(origen.preguntas).map(p => {
+      const orden = mezclar([0, 1, 2, 3]);
+      return { q: p.q, ops: orden.map(i => p.ops[i]), ok: orden.indexOf(p.ok), exp: p.exp };
+    });
+    mpSala = codigo;
+    const ref = fbDb.ref("salas/" + codigo);
+    ref.onDisconnect().remove();
+    ref.set({
+      creada: firebase.database.ServerValue.TIMESTAMP,
+      quizId: origen.id,
+      badge: origen.badge,
+      titulo: origen.titulo,
+      estado: "lobby",
+      preguntaActual: 0,
+      preguntas: preguntas,
+      jugadores: {}
+    }).then(() => mpSuscribirSala()).catch(e => {
+      mpLimpiar();
+      mpAbrirMenu();
+      document.getElementById("multi-error-menu").textContent = "Error creando la sala: " + e.message;
+    });
+  });
+}
+
+function mpSuscribirSala() {
+  mpRefs.forEach(r => { try { r.off(); } catch (e) {} });
+  mpRefs = [];
+  const ref = fbDb.ref("salas/" + mpSala);
+  mpRefs.push(ref);
+  ref.on("value", snap => {
+    const sala = snap.val();
+    if (!sala) { mpSalaEliminada(); return; }
+    mpUltimaSala = sala;
+    mpEnrutador(sala);
+  });
+}
+
+function mpSalaEliminada() {
+  mpLimpiar();
+  mpAbrirMenu();
+  document.getElementById("multi-error-menu").textContent = "La sala se cerró o el maestro se desconectó.";
+}
+
+function mpEnrutador(sala) {
+  const clave = sala.estado + ":" + sala.preguntaActual;
+  const cambio = clave !== mpUltimaRender;
+  mpUltimaRender = clave;
+  if (sala.estado === "lobby") {
+    if (mpEsAnfitrion) mpPintarSalaEspera(sala);
+    else mpPintarEspera(sala);
+  } else if (sala.estado === "pregunta") {
+    if (mpEsAnfitrion) {
+      mpPintarHost(sala);
+    } else if (cambio) {
+      mpPintarPreguntaEstudiante(sala);
+    } else {
+      document.getElementById("puntos").textContent = mpMisPuntos(sala) + " pts";
+    }
+  } else if (sala.estado === "ranking") {
+    mpPintarRanking(sala);
+  } else if (sala.estado === "final") {
+    mpPintarPodio(sala);
+  }
+}
+
+function mpJugadores(sala) {
+  return Object.entries(sala.jugadores || {}).map(([id, j]) => ({ id: id, nombre: j.nombre, puntos: j.puntos || 0, respuestas: j.respuestas || {} }));
+}
+
+function mpPintarSalaEspera(sala) {
+  mpMostrarPantalla("sala");
+  const btnAtras = document.getElementById("btn-atras");
+  btnAtras.classList.remove("oculto");
+  btnAtras.onclick = mpCerrarSala;
+  document.getElementById("multi-codigo").textContent = mpSala;
+  const jugadores = mpJugadores(sala);
+  document.getElementById("multi-num-jugadores").textContent = jugadores.length;
+  document.getElementById("multi-lista-jugadores").innerHTML = jugadores.map(j =>
+    `<span class="jugador-chip"><span class="avatar" style="background:${colorAvatar(j.nombre)}">${escaparHtml(j.nombre.charAt(0).toUpperCase())}</span>${escaparHtml(j.nombre)}</span>`).join("");
+  document.getElementById("btn-multi-iniciar").disabled = jugadores.length === 0;
+}
+
+function mpPintarEspera(sala) {
+  mpMostrarPantalla("espera");
+  const btnAtras = document.getElementById("btn-atras");
+  btnAtras.classList.remove("oculto");
+  btnAtras.onclick = mpSalirEstudiante;
+  const jugadores = mpJugadores(sala);
+  document.getElementById("multi-num-espera").textContent = jugadores.length;
+  document.getElementById("multi-lista-espera").innerHTML = jugadores.map(j =>
+    `<span class="jugador-chip"><span class="avatar" style="background:${colorAvatar(j.nombre)}">${escaparHtml(j.nombre.charAt(0).toUpperCase())}</span>${escaparHtml(j.nombre)}</span>`).join("");
+  const mia = jugadores.find(j => j.id === mpJugadorId);
+  if (mia) document.getElementById("multi-nombre-espera").textContent = mia.nombre;
+}
+
+function mpPintarHost(sala) {
+  mpMostrarPantalla("host");
+  const btnAtras = document.getElementById("btn-atras");
+  btnAtras.classList.remove("oculto");
+  btnAtras.onclick = mpCerrarSala;
+  const p = sala.preguntas[sala.preguntaActual];
+  document.getElementById("multi-host-tema").textContent = sala.badge + " · " + sala.titulo.toUpperCase();
+  document.getElementById("multi-host-pregunta").textContent = p.q;
+  const jugadores = mpJugadores(sala);
+  const respondieron = jugadores.filter(j => j.respuestas[sala.preguntaActual] !== undefined && j.respuestas[sala.preguntaActual] !== null).length;
+  document.getElementById("multi-host-contador").textContent = respondieron;
+  document.getElementById("multi-host-total").textContent = jugadores.length;
+  document.getElementById("multi-host-num").textContent = sala.preguntaActual + 1;
+  document.getElementById("multi-host-de").textContent = sala.preguntas.length;
+  document.getElementById("multi-host-relleno").style.width = (respondieron / Math.max(jugadores.length, 1)) * 100 + "%";
+}
+
+function mpMisPuntos(sala) {
+  if (mpJugadorId && sala.jugadores && sala.jugadores[mpJugadorId]) return sala.jugadores[mpJugadorId].puntos || 0;
+  return 0;
+}
+
+function mpPintarPreguntaEstudiante(sala) {
+  mpMostrarPantalla(null);
+  const btnAtras = document.getElementById("btn-atras");
+  btnAtras.classList.remove("oculto");
+  btnAtras.onclick = mpSalirEstudiante;
+  reiniciarAnimacion($quiz);
+  respondido = false;
+  const idx = sala.preguntaActual;
+  const p = sala.preguntas[idx];
+  quizActual = { id: sala.quizId, badge: sala.badge, titulo: sala.titulo, preguntas: sala.preguntas };
+  actual = idx;
+  document.getElementById("tema-actual").textContent = sala.badge + " · " + sala.titulo.toUpperCase();
+  document.getElementById("racha").classList.remove("visible");
+  document.getElementById("contador").textContent = `Pregunta ${idx + 1} de ${sala.preguntas.length}`;
+  document.getElementById("puntos").textContent = mpMisPuntos(sala) + " pts";
+  document.getElementById("relleno").style.width = (idx / sala.preguntas.length) * 100 + "%";
+  mpPintarDots(sala);
+  document.getElementById("zona-resultado").style.display = "none";
+  document.getElementById("zona-siguiente").style.display = "none";
+  const $preguntaEl = document.getElementById("pregunta");
+  $preguntaEl.textContent = p.q;
+  $preguntaEl.classList.remove("animar");
+  void $preguntaEl.offsetWidth;
+  $preguntaEl.classList.add("animar");
+  const cont = document.getElementById("opciones");
+  cont.classList.remove("animar");
+  cont.innerHTML = "";
+  p.ops.forEach((texto, i) => {
+    const btn = document.createElement("button");
+    btn.className = "opcion";
+    btn.style.setProperty("--o", i);
+    btn.innerHTML = `<span class="letra">${letras[i]}</span><span>${escaparHtml(texto)}</span>`;
+    btn.onclick = () => responder(i, btn);
+    cont.appendChild(btn);
+  });
+  void cont.offsetWidth;
+  cont.classList.add("animar");
+  mpIniciarTimerSincronizado(sala);
+}
+
+function mpPintarDots(sala) {
+  const cont = document.getElementById("dots");
+  cont.innerHTML = "";
+  const mia = mpJugadorId && sala.jugadores && sala.jugadores[mpJugadorId] ? (sala.jugadores[mpJugadorId].respuestas || {}) : {};
+  for (let i = 0; i < sala.preguntas.length; i++) {
+    const d = document.createElement("span");
+    let cls = "dot";
+    if (i === sala.preguntaActual) cls += " actual";
+    else if (mia[i] !== undefined && mia[i] !== null) cls += mia[i].op === sala.preguntas[i].ok ? " ok" : " mal";
+    d.className = cls;
+    cont.appendChild(d);
+  }
+}
+
+function mpIniciarTimerSincronizado(sala) {
+  detenerTimer();
+  const inicio = sala.preguntaInicio || mpServidorAhora();
+  tiempoRestante = TIEMPO_PREGUNTA;
+  pintarTimer();
+  intervaloTimer = setInterval(() => {
+    const restante = TIEMPO_PREGUNTA - (mpServidorAhora() - inicio) / 1000;
+    tiempoRestante = Math.max(0, restante);
+    pintarTimer();
+    if (tiempoRestante <= 0) {
+      detenerTimer();
+      mpExpirar();
+    }
+  }, 100);
+}
+
+function mpResponder(i, btn) {
+  if (respondido) return;
+  respondido = true;
+  detenerTimer();
+  const sala = mpUltimaSala;
+  const idx = sala.preguntaActual;
+  const p = sala.preguntas[idx];
+  const restante = Math.max(0, TIEMPO_PREGUNTA - (mpServidorAhora() - sala.preguntaInicio) / 1000);
+  if (i === p.ok) {
+    const ganancia = 500 + Math.round(500 * restante / TIEMPO_PREGUNTA);
+    btn.classList.add("correcta");
+    revelarRespuesta(null);
+    mostrarExplicacion("bien", `¡Correcto! +${ganancia} pts`);
+    sonidos.acierto(1);
+    mpEscribirRespuesta(idx, i, ganancia);
+  } else {
+    btn.classList.add("incorrecta");
+    revelarRespuesta(p.ok);
+    mostrarExplicacion("mal", "Incorrecto.");
+    sonidos.fallo();
+    mpEscribirRespuesta(idx, i, 0);
+  }
+  mpPintarDots(sala);
+}
+
+function mpEscribirRespuesta(idx, op, ganancia) {
+  const refJ = fbDb.ref("salas/" + mpSala + "/jugadores/" + mpJugadorId);
+  refJ.child("respuestas/" + idx).set({ op: op });
+  if (ganancia > 0) refJ.child("puntos").transaction(cur => (cur || 0) + ganancia);
+}
+
+function mpExpirar() {
+  if (respondido) return;
+  respondido = true;
+  revelarRespuesta(mpUltimaSala.preguntas[mpUltimaSala.preguntaActual].ok);
+  mostrarExplicacion("tiempo", "¡Tiempo agotado!");
+  sonidos.tiempoAgotado();
+  fbDb.ref("salas/" + mpSala + "/jugadores/" + mpJugadorId + "/respuestas/" + mpUltimaSala.preguntaActual).set({ op: -1 });
+  mpPintarDots(mpUltimaSala);
+}
+
+function mpPintarRanking(sala) {
+  mpMostrarPantalla("ranking");
+  detenerTimer();
+  document.getElementById("btn-atras").classList.add("oculto");
+  const jugadores = mpJugadores(sala).sort((a, b) => b.puntos - a.puntos);
+  const esUltima = sala.preguntaActual >= sala.preguntas.length - 1;
+  document.getElementById("multi-ranking-titulo").textContent = `Pregunta ${sala.preguntaActual + 1} de ${sala.preguntas.length} · Ranking general`;
+  document.getElementById("multi-ranking-lista").innerHTML = jugadores.slice(0, 10).map((j, i) =>
+    `<div class="fila-rank top${i + 1}${j.id === mpJugadorId ? " actual" : ""}"><span class="pos">${i + 1}</span><span class="info-rank"><b>${escaparHtml(j.nombre)}</b></span><span style="margin-left:auto;font-weight:700;color:#a5b4fc;">${j.puntos} pts</span></div>`).join("");
+  document.getElementById("multi-ranking-botones").style.display = mpEsAnfitrion ? "flex" : "none";
+  document.getElementById("multi-ranking-espera").style.display = mpEsAnfitrion ? "none" : "block";
+  document.getElementById("btn-multi-siguiente").textContent = esUltima ? "Ver podio final" : "Siguiente pregunta →";
+}
+
+function mpSiguiente() {
+  const sala = mpUltimaSala;
+  const esUltima = sala.preguntaActual >= sala.preguntas.length - 1;
+  const upd = esUltima
+    ? { estado: "final" }
+    : { estado: "pregunta", preguntaActual: sala.preguntaActual + 1, preguntaInicio: firebase.database.ServerValue.TIMESTAMP };
+  fbDb.ref("salas/" + mpSala).update(upd);
+}
+
+function mpPintarPodio(sala) {
+  mpMostrarPantalla("podio");
+  detenerTimer();
+  document.getElementById("btn-atras").classList.add("oculto");
+  const jugadores = mpJugadores(sala).sort((a, b) => b.puntos - a.puntos);
+  const podio = document.getElementById("multi-podio");
+  podio.innerHTML = [1, 0, 2].map(pos => {
+    const j = jugadores[pos];
+    if (!j) return "";
+    return `<div class="podio-lugar l${pos + 1}"><span class="medalla">${pos + 1}</span><span class="nombre-podio">${escaparHtml(j.nombre)}</span><span class="puntos-podio">${j.puntos} pts</span></div>`;
+  }).join("");
+  document.getElementById("multi-podio-lista").innerHTML = jugadores.slice(3).map((j, i) =>
+    `<div class="fila-rank"><span class="pos">${i + 4}</span><span class="info-rank"><b>${escaparHtml(j.nombre)}</b></span><span style="margin-left:auto;font-weight:700;color:#a5b4fc;">${j.puntos} pts</span></div>`).join("");
+  const mio = jugadores.find(j => j.id === mpJugadorId);
+  if (mio && jugadores[0] && mio.id === jugadores[0].id) lanzarConfeti();
+  sonidos.victoria();
+}
+
+function mpCerrarSala() {
+  if (mpSala && fbDb) fbDb.ref("salas/" + mpSala).remove();
+  mpLimpiar();
+  mpAbrirMenu();
+}
+
+function mpSalirEstudiante() {
+  if (mpSala && fbDb && mpJugadorId) fbDb.ref("salas/" + mpSala + "/jugadores/" + mpJugadorId).remove();
+  mpLimpiar();
+  mpAbrirMenu();
+}
+
+function mpIntentarUnirse() {
+  const codigo = document.getElementById("multi-input-codigo").value.trim().toUpperCase();
+  const nombre = document.getElementById("multi-input-nombre").value.trim().replace(/\s+/g, " ");
+  const err = document.getElementById("multi-error-unirse");
+  if (codigo.length !== 5) { err.textContent = "El código tiene 5 letras/números."; return; }
+  if (nombre.length < 2) { err.textContent = "Escribe tu nombre (mínimo 2 letras)."; return; }
+  err.textContent = "Conectando...";
+  mpCargarSDK(() => {
+    mpInit();
+    mpEsAnfitrion = false;
+    const ref = fbDb.ref("salas/" + codigo);
+    ref.child("estado").once("value").then(s => {
+      if (!s.exists()) { err.textContent = "No existe una sala con ese código."; return; }
+      if (s.val() !== "lobby") { err.textContent = "La partida ya comenzó. Pide al maestro que te espere."; return; }
+      mpSala = codigo;
+      const jref = ref.child("jugadores").push();
+      mpJugadorId = jref.key;
+      jref.onDisconnect().remove();
+      return jref.set({ nombre: nombre, puntos: 0 });
+    }).then(() => {
+      if (mpSala === codigo) mpSuscribirSala();
+    }).catch(() => {
+      err.textContent = "Error de conexión. Verifica el código y tu internet.";
+    });
+  });
+}
+
+document.getElementById("btn-multi-abrir").onclick = mpAbrirMenu;
+document.getElementById("btn-multi-crear").onclick = () => {
+  if (!mpCargado()) {
+    document.getElementById("multi-error-menu").textContent = "El multijugador aún no está configurado. Falta conectar Firebase.";
+    return;
+  }
+  mpAbrirCrear();
+};
+document.getElementById("btn-multi-unirse").onclick = () => {
+  if (!mpCargado()) {
+    document.getElementById("multi-error-menu").textContent = "El multijugador aún no está configurado. Falta conectar Firebase.";
+    return;
+  }
+  mpMostrarPantalla("unirse");
+  const btnAtras = document.getElementById("btn-atras");
+  btnAtras.classList.remove("oculto");
+  btnAtras.onclick = mpAbrirMenu;
+  document.getElementById("multi-error-unirse").textContent = "";
+  document.getElementById("multi-input-codigo").value = "";
+  document.getElementById("multi-input-nombre").value = "";
+};
+document.getElementById("btn-multi-iniciar").onclick = () => {
+  fbDb.ref("salas/" + mpSala).update({ estado: "pregunta", preguntaActual: 0, preguntaInicio: firebase.database.ServerValue.TIMESTAMP });
+};
+document.getElementById("btn-multi-siguiente").onclick = mpSiguiente;
+document.getElementById("btn-multi-ver-ranking").onclick = () => {
+  fbDb.ref("salas/" + mpSala).update({ estado: "ranking" });
+};
+document.getElementById("btn-multi-cerrar").onclick = mpCerrarSala;
+document.getElementById("btn-multi-salir").onclick = () => { if (mpEsAnfitrion) mpCerrarSala(); else mpSalirEstudiante(); };
+document.getElementById("btn-multi-entrar").onclick = mpIntentarUnirse;
+document.getElementById("multi-input-codigo").addEventListener("keydown", e => { if (e.key === "Enter") document.getElementById("multi-input-nombre").focus(); });
+document.getElementById("multi-input-nombre").addEventListener("keydown", e => { if (e.key === "Enter") mpIntentarUnirse(); });
 
 abrirLobby();
 </script>
