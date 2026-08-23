@@ -679,7 +679,11 @@ const quizzes = [
       { q: "¿Qué función cuenta cuántas filas tiene una tabla?",
         ops: ["COUNT()", "SUM()", "TOTAL()", "LEN()"],
         ok: 0,
-        exp: "SELECT COUNT(*) FROM tabla; devuelve cuántas filas hay." }
+        exp: "SELECT COUNT(*) FROM tabla; devuelve cuántas filas hay." },
+      { q: "¿Qué palabra evita filas REPETIDAS en el resultado de una consulta?",
+        ops: ["UNIQUE", "DISTINCT", "NOREPEAT", "SINGLE"],
+        ok: 1,
+        exp: "SELECT DISTINCT ciudad FROM clientes; devuelve cada ciudad una sola vez, sin duplicados." }
     ]
   },
   {
@@ -736,7 +740,19 @@ const quizzes = [
       { q: "¿Para qué sirve un backup (respaldo)?",
         ops: ["Para acelerar consultas", "Para recuperar los datos si algo falla", "Para encriptar la base", "Para cambiar el puerto"],
         ok: 1,
-        exp: "Un backup guarda una copia de seguridad que permite restaurar los datos ante errores o pérdidas." }
+        exp: "Un backup guarda una copia de seguridad que permite restaurar los datos ante errores o pérdidas." },
+      { q: "¿Qué comando elimina una base de datos COMPLETA?",
+        ops: ["DELETE DATABASE tienda;", "DROP DATABASE tienda;", "REMOVE DATABASE tienda;", "ERASE DATABASE tienda;"],
+        ok: 1,
+        exp: "DROP DATABASE tienda; borra la base con TODAS sus tablas. Se usa con muchísimo cuidado." },
+      { q: "¿Qué comando confirma (guarda definitivamente) los cambios de una transacción?",
+        ops: ["COMMIT;", "SAVE;", "FIX;", "APPLY;"],
+        ok: 0,
+        exp: "COMMIT confirma los cambios pendientes; ROLLBACK los deshace. Juntos hacen transacciones seguras." },
+      { q: "¿Cómo cambias la contraseña de un usuario llamado ana?",
+        ops: ["SET PASSWORD ana = 'nueva';", "ALTER USER 'ana'@'localhost' IDENTIFIED BY 'nueva';", "CHANGE PASSWORD ana;", "UPDATE USER ana PASSWORD 'nueva';"],
+        ok: 1,
+        exp: "ALTER USER ... IDENTIFIED BY 'nueva contraseña'; actualiza la clave de acceso de cualquier usuario." }
     ]
   },
   {
@@ -751,7 +767,7 @@ const quizzes = [
         ok: 0,
         exp: "print('Hola') muestra el texto en pantalla. Es la primera función que todos aprenden." },
       { q: "¿Con qué símbolo empieza un comentario en Python?",
-        ops: ["//", "<!--", "#", "**"],
+        ops: ["//", "<!" + "--", "#", "**"],
         ok: 2,
         exp: "# esto es un comentario. Python ignora todo lo que va después del símbolo numeral." },
       { q: "¿Cuál de estas variables tiene un nombre VÁLIDO?",
@@ -801,7 +817,11 @@ const quizzes = [
       { q: "¿Qué imprime este código? if 5 > 3: print('A') else: print('B')",
         ops: ["B", "A", "A y B", "Error"],
         ok: 1,
-        exp: "Como 5 es mayor que 3, la condición es verdadera y se ejecuta la rama del if: imprime 'A'." }
+        exp: "Como 5 es mayor que 3, la condición es verdadera y se ejecuta la rama del if: imprime 'A'." },
+      { q: "¿Qué operador compara si dos valores son IGUALES?",
+        ops: ["=", "==", "===", "eq"],
+        ok: 1,
+        exp: "== compara valores (5 == 5 es True); = asigna un valor a una variable. Confundirlos es error clásico." }
     ]
   },
   {
@@ -844,7 +864,7 @@ const quizzes = [
         ok: 1,
         exp: "Regla de oro: HTML pone el contenido/estructura, CSS pone la apariencia (colores, tamaños, posición)." },
       { q: "¿Dónde va el CSS interno dentro del documento?",
-        ops: ["Entre <style> y </style>", "Entre <script> y </script>", "Directo en <body>", "Entre <meta> tags"],
+        ops: ["Entre <style> y </style>", "Entre <scr" + "ipt> y </scr" + "ipt>", "Directo en <body>", "Entre <meta> tags"],
         ok: 0,
         exp: "El CSS interno vive en la etiqueta <style>, generalmente dentro de <head>." },
       { q: "¿Qué propiedad CSS cambia el color de FONDO?",
@@ -858,7 +878,19 @@ const quizzes = [
       { q: "¿Qué hace display: flex en un contenedor?",
         ops: ["Oculta sus elementos hijos", "Pone los elementos en fila y permite alinearlos fácilmente", "Aplica sombra 3D", "Hace zoom a la página"],
         ok: 1,
-        exp: "Flexbox organiza los hijos en filas o columnas con alineación flexible. Hoy es el estándar." }
+        exp: "Flexbox organiza los hijos en filas o columnas con alineación flexible. Hoy es el estándar." },
+      { q: "¿Qué etiqueta define el título que se ve en la PESTAÑA del navegador?",
+        ops: ["<title>", "<h1>", "<head-title>", "<tab>"],
+        ok: 0,
+        exp: "<title>Mi página</title> va dentro de <head>. Es el nombre de la pestaña y el que muestra Google en resultados." },
+      { q: "¿Qué propiedad CSS cambia el color del TEXTO?",
+        ops: ["text-color", "font-color", "color", "text-style"],
+        ok: 2,
+        exp: "color: red; pinta las letras. background-color es la del fondo. No existen text-color ni font-color." },
+      { q: "¿Cómo conectas un archivo CSS EXTERNO con tu HTML?",
+        ops: ["<style src='estilos.css'>", "<link rel='stylesheet' href='estilos.css'>", "<css href='estilos.css'>", "<scr" + "ipt src='estilos.css'>"],
+        ok: 1,
+        exp: "<link rel='stylesheet' href='estilos.css'> dentro de <head> enlaza el CSS externo. Es la forma recomendada de trabajar." }
     ]
   },
   {
@@ -873,7 +905,7 @@ const quizzes = [
         ok: 1,
         exp: "Git registra el historial de cambios de tus archivos, permitiendo volver atrás y colaborar." },
       { q: "¿Para qué sirve el control de versiones?",
-        ops: ["Para hacer la página más rápida", "Para guardar el historial de cambios y trabajar en equipo sin pisarse", "Para dibjar interfaces", "Para programar más rápido"],
+        ops: ["Para hacer la página más rápida", "Para guardar el historial de cambios y trabajar en equipo sin pisarse", "Para dibujar interfaces", "Para programar más rápido"],
         ok: 1,
         exp: "Guarda 'fotos' (commits) del proyecto: puedes recuperar versiones anteriores y fusionar el trabajo de varias personas." },
       { q: "¿Qué comando INICIA un repositorio nuevo en una carpeta?",
@@ -915,7 +947,19 @@ const quizzes = [
       { q: "¿Qué archivo le dice a Git qué carpetas/archivos IGNORAR?",
         ops: [".gitignore", ".ignoreme", "git.config", ".skip"],
         ok: 0,
-        exp: ".gitignore evita subir cosas como contraseñas, node_modules o archivos temporales." }
+        exp: ".gitignore evita subir cosas como contraseñas, node_modules o archivos temporales." },
+      { q: "¿Qué comando muestra el ESTADO actual de tus archivos?",
+        ops: ["git state", "git status", "git check", "git info"],
+        ok: 1,
+        exp: "git status muestra qué archivos cambiaron, cuáles están preparados para commit y cuáles Git ni rastrea." },
+      { q: "¿Qué es exactamente un 'commit'?",
+        ops: ["Un error de código", "Una foto (snapshot) del proyecto en un momento dado", "Una copia de seguridad en la nube", "El nombre de una rama"],
+        ok: 1,
+        exp: "Cada commit guarda los cambios con autor, fecha y mensaje. Todos juntos forman el historial del proyecto." },
+      { q: "¿Qué hace git merge?",
+        ops: ["Borra una rama", "Fusiona los cambios de una rama en otra", "Crea una rama nueva", "Sube los cambios a GitHub"],
+        ok: 1,
+        exp: "git merge integra los cambios de una rama en la actual, por ejemplo unir tu rama de trabajo con main." }
     ]
   }
 ];
@@ -1194,7 +1238,13 @@ function iniciarQuiz(id) {
   const origen = quizzes.find(qz => qz.id === id);
   const catPadre = CATEGORIAS.find(c => c.quizzes.includes(id));
   categoriaAbierta = catPadre ? catPadre.id : null;
-  quizActual = { ...origen, preguntas: mezclar(origen.preguntas) };
+  quizActual = {
+    ...origen,
+    preguntas: mezclar(origen.preguntas).map(p => {
+      const orden = mezclar([0, 1, 2, 3]);
+      return { q: p.q, ops: orden.map(i => p.ops[i]), ok: orden.indexOf(p.ok), exp: p.exp };
+    })
+  };
   actual = 0; puntos = 0; aciertos = 0; fallos = 0; agotados = 0; racha = 0;
   respuestas = new Array(quizActual.preguntas.length).fill(null);
   document.getElementById("tema-actual").textContent = quizActual.badge + " · " + quizActual.titulo.toUpperCase();
@@ -1211,6 +1261,12 @@ function reiniciarAnimacion(el) {
   el.style.animation = "none";
   void el.offsetWidth;
   el.style.animation = "";
+}
+
+function escaparHtml(s) {
+  const d = document.createElement("div");
+  d.textContent = s;
+  return d.innerHTML;
 }
 
 function mostrarPregunta() {
@@ -1236,7 +1292,7 @@ function mostrarPregunta() {
     const btn = document.createElement("button");
     btn.className = "opcion";
     btn.style.setProperty("--o", i);
-    btn.innerHTML = `<span class="letra">${letras[i]}</span><span>${texto}</span>`;
+    btn.innerHTML = `<span class="letra">${letras[i]}</span><span>${escaparHtml(texto)}</span>`;
     btn.onclick = () => responder(i, btn);
     cont.appendChild(btn);
   });
