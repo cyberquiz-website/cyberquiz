@@ -790,6 +790,8 @@
   <div class="brillo-linea"></div>
   <p style="color:var(--texto-suave);letter-spacing:3px;font-size:0.95rem;margin-top:10px;">CÓDIGO DE LA SALA</p>
   <div class="codigo-sala" id="multi-codigo">-----</div>
+  <p class="multi-estado" id="multi-conectando" style="display:none">Conectando al servidor... puede tardar unos segundos</p>
+  <div class="multi-error" id="multi-error-sala"></div>
   <p class="multi-estado">Comparte este código: tus estudiantes entran en "Unirse a sala"</p>
   <h3 style="margin-top:14px">Jugadores conectados (<span id="multi-num-jugadores">0</span>)</h3>
   <div class="lista-jugadores" id="multi-lista-jugadores"></div>
@@ -2371,6 +2373,8 @@ let mpEnMulti = false;
 let mpPodioCelebrado = false;
 let mpTimerHost = null;
 let mpAutoReloj = "";
+let mpConectando = false;
+let mpTimeoutConexion = null;
 
 const COLORES_AVATAR = ["#6366f1", "#8b5cf6", "#ec4899", "#f59e0b", "#10b981", "#06b6d4", "#f43f5e", "#84cc16"];
 const PANTALLAS_MULTI = ["menu", "crear", "sala", "unirse", "espera", "host", "ranking", "podio"]
@@ -2442,6 +2446,8 @@ function mpLimpiar() {
   if (mpTimerMulti) { clearInterval(mpTimerMulti); mpTimerMulti = null; }
   if (mpTimerHost) { clearInterval(mpTimerHost); mpTimerHost = null; }
   mpAutoReloj = "";
+  mpConectando = false;
+  if (mpTimeoutConexion) { clearTimeout(mpTimeoutConexion); mpTimeoutConexion = null; }
 }
 
 function mpAbrirMenu() {
@@ -2484,36 +2490,66 @@ function mpAbrirCrear() {
 }
 
 function mpCrearSala(quizId) {
+  if (mpConectando) return;
+  mpConectando = true;
+  mpMostrarPantalla("sala");
+  const btnAtras = document.getElementById("btn-atras");
+  btnAtras.classList.remove("oculto");
+  btnAtras.onclick = () => {
+    if (mpTimeoutConexion) { clearTimeout(mpTimeoutConexion); mpTimeoutConexion = null; }
+    try { if (fbDb && mpSala) fbDb.ref("salas/" + mpSala).remove(); } catch (e) {}
+    mpLimpiar();
+    mpAbrirMenu();
+  };
+  document.getElementById("multi-codigo").textContent = "-----";
+  document.getElementById("multi-conectando").style.display = "block";
+  document.getElementById("multi-error-sala").textContent = "";
+  document.getElementById("multi-lista-jugadores").innerHTML = "";
+  document.getElementById("multi-num-jugadores").textContent = "0";
+  document.getElementById("btn-multi-iniciar").disabled = true;
+  const falloConexion = msg => {
+    mpConectando = false;
+    if (mpTimeoutConexion) { clearTimeout(mpTimeoutConexion); mpTimeoutConexion = null; }
+    document.getElementById("multi-conectando").style.display = "none";
+    document.getElementById("multi-error-sala").textContent = msg;
+  };
   mpCargarSDK(() => {
-    mpInit();
-    mpEsAnfitrion = true;
-    const codigo = generarCodigo();
-    const origen = quizzes.find(q => q.id === quizId);
-    const banco = origen.preguntas.filter(p => (p.niv || "facil") === dificultad);
-    const seleccion = seleccionarPreguntas(banco.length ? banco : origen.preguntas, "cyberquiz_vistas_" + origen.id + "_" + dificultad);
-    const preguntas = seleccion.map(p => {
-      const orden = mezclar([0, 1, 2, 3]);
-      return { q: p.q, ops: orden.map(i => p.ops[i]), ok: orden.indexOf(p.ok), exp: p.exp };
-    });
-    mpSala = codigo;
-    const ref = fbDb.ref("salas/" + codigo);
-    ref.onDisconnect().remove();
-    ref.set({
-      creada: firebase.database.ServerValue.TIMESTAMP,
-      quizId: origen.id,
-      badge: origen.badge,
-      titulo: origen.titulo,
-      dificultad: dificultad,
-      tiempo: DIFICULTADES[dificultad].tiempo,
-      estado: "lobby",
-      preguntaActual: 0,
-      preguntas: preguntas,
-      jugadores: {}
-    }).then(() => mpSuscribirSala()).catch(e => {
-      mpLimpiar();
-      mpAbrirMenu();
-      document.getElementById("multi-error-menu").textContent = "Error creando la sala: " + e.message;
-    });
+    try {
+      mpInit();
+      mpEsAnfitrion = true;
+      const codigo = generarCodigo();
+      const origen = quizzes.find(q => q.id === quizId);
+      const banco = origen.preguntas.filter(p => (p.niv || "facil") === dificultad);
+      const seleccion = seleccionarPreguntas(banco.length ? banco : origen.preguntas, "cyberquiz_vistas_" + origen.id + "_" + dificultad);
+      const preguntas = seleccion.map(p => {
+        const orden = mezclar([0, 1, 2, 3]);
+        return { q: p.q, ops: orden.map(i => p.ops[i]), ok: orden.indexOf(p.ok), exp: p.exp };
+      });
+      mpSala = codigo;
+      const ref = fbDb.ref("salas/" + codigo);
+      ref.onDisconnect().remove();
+      mpTimeoutConexion = setTimeout(() => {
+        if (mpConectando && !mpUltimaSala) falloConexion("Tardó demasiado en conectar. Revisa tu internet e intenta de nuevo.");
+      }, 12000);
+      ref.set({
+        creada: firebase.database.ServerValue.TIMESTAMP,
+        quizId: origen.id,
+        badge: origen.badge,
+        titulo: origen.titulo,
+        dificultad: dificultad,
+        tiempo: DIFICULTADES[dificultad].tiempo,
+        estado: "lobby",
+        preguntaActual: 0,
+        preguntas: preguntas,
+        jugadores: {}
+      }).then(() => mpSuscribirSala()).catch(e => {
+        falloConexion("Error creando la sala: " + e.message);
+      });
+    } catch (e) {
+      falloConexion("Error inesperado: " + e.message);
+    }
+  }, () => {
+    falloConexion("No se pudo conectar con Firebase. Revisa tu internet e intenta de nuevo.");
   });
 }
 
@@ -2567,6 +2603,12 @@ function mpPintarSalaEspera(sala) {
   const btnAtras = document.getElementById("btn-atras");
   btnAtras.classList.remove("oculto");
   btnAtras.onclick = mpCerrarSala;
+  if (mpConectando) {
+    mpConectando = false;
+    if (mpTimeoutConexion) { clearTimeout(mpTimeoutConexion); mpTimeoutConexion = null; }
+  }
+  document.getElementById("multi-conectando").style.display = "none";
+  document.getElementById("multi-error-sala").textContent = "";
   document.getElementById("multi-codigo").textContent = mpSala;
   const jugadores = mpJugadores(sala);
   document.getElementById("multi-num-jugadores").textContent = jugadores.length;
@@ -2842,26 +2884,36 @@ function mpIntentarUnirse() {
   const codigo = document.getElementById("multi-input-codigo").value.trim().toUpperCase();
   const nombre = document.getElementById("multi-input-nombre").value.trim().replace(/\s+/g, " ");
   const err = document.getElementById("multi-error-unirse");
+  const btn = document.getElementById("btn-multi-entrar");
   if (codigo.length !== 5) { err.textContent = "El código tiene 5 letras/números."; return; }
   if (nombre.length < 2) { err.textContent = "Escribe tu nombre (mínimo 2 letras)."; return; }
+  if (mpConectando) return;
+  mpConectando = true;
+  btn.disabled = true;
   err.textContent = "Conectando...";
+  const reactivar = () => { mpConectando = false; btn.disabled = false; };
   mpCargarSDK(() => {
     mpInit();
     mpEsAnfitrion = false;
     const ref = fbDb.ref("salas/" + codigo);
     ref.child("estado").once("value").then(s => {
-      if (!s.exists()) { err.textContent = "No existe una sala con ese código."; return; }
-      if (s.val() !== "lobby") { err.textContent = "La partida ya comenzó. Pide al maestro que te espere."; return; }
+      if (!s.exists()) { reactivar(); err.textContent = "No existe una sala con ese código."; return; }
+      if (s.val() !== "lobby") { reactivar(); err.textContent = "La partida ya comenzó. Pide al maestro que te espere."; return; }
       mpSala = codigo;
       const jref = ref.child("jugadores").push();
       mpJugadorId = jref.key;
       jref.onDisconnect().remove();
       return jref.set({ nombre: nombre, puntos: 0 });
     }).then(() => {
+      reactivar();
       if (mpSala === codigo) mpSuscribirSala();
     }).catch(() => {
+      reactivar();
       err.textContent = "Error de conexión. Verifica el código y tu internet.";
     });
+  }, () => {
+    reactivar();
+    err.textContent = "No se pudo conectar con Firebase. Revisa tu internet e intenta de nuevo.";
   });
 }
 
@@ -3009,6 +3061,7 @@ document.getElementById("btn-multi-unirse").onclick = () => {
   btnAtras.classList.remove("oculto");
   btnAtras.onclick = mpAbrirMenu;
   document.getElementById("multi-error-unirse").textContent = "";
+  document.getElementById("btn-multi-entrar").disabled = false;
   document.getElementById("multi-input-codigo").value = "";
   document.getElementById("multi-input-nombre").value = "";
 };
