@@ -775,10 +775,11 @@
 <div class="tarjeta oculto" id="pantalla-multi-ranking">
   <h2 id="multi-ranking-titulo">Ranking</h2>
   <div id="multi-ranking-lista" style="max-width:500px;margin:0 auto;"></div>
+  <p class="multi-estado" id="multi-ranking-cuenta" style="min-height:22px;"></p>
   <div class="zona-botones-final" id="multi-ranking-botones" style="display:none">
-    <button class="boton" id="btn-multi-siguiente">Siguiente pregunta →</button>
+    <button class="boton" id="btn-multi-siguiente">Siguiente ahora →</button>
   </div>
-  <p class="multi-estado" id="multi-ranking-espera" style="display:none">Esperando al maestro...</p>
+  <p class="multi-estado" id="multi-ranking-espera" style="display:none">La partida continúa automáticamente...</p>
 </div>
 
 <div class="tarjeta oculto" id="pantalla-multi-podio">
@@ -1812,6 +1813,8 @@ let mpOffset = 0;
 let mpRefs = [];
 let mpUltimaSala = null;
 let mpUltimaRender = "";
+let mpAutoKey = "";
+let mpTimerMulti = null;
 let mpEnMulti = false;
 
 const COLORES_AVATAR = ["#6366f1", "#8b5cf6", "#ec4899", "#f59e0b", "#10b981", "#06b6d4", "#f43f5e", "#84cc16"];
@@ -1876,8 +1879,10 @@ function mpLimpiar() {
   mpJugadorId = null;
   mpUltimaSala = null;
   mpUltimaRender = "";
+  mpAutoKey = "";
   mpEnMulti = false;
   detenerTimer();
+  if (mpTimerMulti) { clearInterval(mpTimerMulti); mpTimerMulti = null; }
 }
 
 function mpAbrirMenu() {
@@ -2030,6 +2035,15 @@ function mpPintarHost(sala) {
   document.getElementById("multi-host-num").textContent = sala.preguntaActual + 1;
   document.getElementById("multi-host-de").textContent = sala.preguntas.length;
   document.getElementById("multi-host-relleno").style.width = (respondieron / Math.max(jugadores.length, 1)) * 100 + "%";
+  const claveAuto = "rank:" + sala.preguntaActual;
+  if (jugadores.length > 0 && respondieron >= jugadores.length && mpAutoKey !== claveAuto) {
+    mpAutoKey = claveAuto;
+    setTimeout(() => {
+      if (mpUltimaSala && mpUltimaSala.estado === "pregunta" && mpUltimaSala.preguntaActual === sala.preguntaActual) {
+        fbDb.ref("salas/" + mpSala).update({ estado: "ranking" });
+      }
+    }, 1500);
+  }
 }
 
 function mpMisPuntos(sala) {
@@ -2159,7 +2173,31 @@ function mpPintarRanking(sala) {
     `<div class="fila-rank top${i + 1}${j.id === mpJugadorId ? " actual" : ""}"><span class="pos">${i + 1}</span><span class="info-rank"><b>${escaparHtml(j.nombre)}</b></span><span style="margin-left:auto;font-weight:700;color:#a5b4fc;">${j.puntos} pts</span></div>`).join("");
   document.getElementById("multi-ranking-botones").style.display = mpEsAnfitrion ? "flex" : "none";
   document.getElementById("multi-ranking-espera").style.display = mpEsAnfitrion ? "none" : "block";
-  document.getElementById("btn-multi-siguiente").textContent = esUltima ? "Ver podio final" : "Siguiente pregunta →";
+  document.getElementById("btn-multi-siguiente").textContent = esUltima ? "Ver podio ahora" : "Siguiente ahora →";
+  const claveCuenta = "cuenta:" + sala.preguntaActual;
+  if (mpAutoKey !== claveCuenta) {
+    mpAutoKey = claveCuenta;
+    let ticks = 0;
+    const lbl = document.getElementById("multi-ranking-cuenta");
+    const pintarCuenta = () => {
+      ticks++;
+      const faltan = Math.max(0, 6 - Math.floor(ticks / 10));
+      lbl.textContent = esUltima
+        ? "Podio final en " + faltan + " segundos..."
+        : "Siguiente pregunta en " + faltan + " segundos...";
+      return ticks >= 60;
+    };
+    pintarCuenta();
+    if (mpTimerMulti) clearInterval(mpTimerMulti);
+    mpTimerMulti = setInterval(() => {
+      if (pintarCuenta()) {
+        clearInterval(mpTimerMulti);
+        mpTimerMulti = null;
+        lbl.textContent = "";
+        if (mpUltimaSala && mpUltimaSala.estado === "ranking") mpSiguiente();
+      }
+    }, 100);
+  }
 }
 
 function mpSiguiente() {
