@@ -825,7 +825,7 @@
   <div class="pregunta-host" id="multi-host-pregunta"></div>
   <div class="contador-respuestas"><span id="multi-host-contador">0</span> / <span id="multi-host-total">0</span> han respondido</div>
   <div class="barra-progreso"><div id="multi-host-relleno"></div></div>
-  <p class="multi-estado">Pregunta <span id="multi-host-num">1</span> de <span id="multi-host-de">15</span> · Cuando todos respondan o se acabe el tiempo, pasa a la siguiente</p>
+  <p class="multi-estado">Pregunta <span id="multi-host-num">1</span> de <span id="multi-host-de">10</span> · La partida avanza sola: al responder todos o al agotarse el tiempo</p>
   <div class="zona-botones-final">
     <button class="boton" id="btn-multi-ver-ranking">Ver ranking →</button>
   </div>
@@ -2369,6 +2369,8 @@ let mpAutoKey = "";
 let mpTimerMulti = null;
 let mpEnMulti = false;
 let mpPodioCelebrado = false;
+let mpTimerHost = null;
+let mpAutoReloj = "";
 
 const COLORES_AVATAR = ["#6366f1", "#8b5cf6", "#ec4899", "#f59e0b", "#10b981", "#06b6d4", "#f43f5e", "#84cc16"];
 const PANTALLAS_MULTI = ["menu", "crear", "sala", "unirse", "espera", "host", "ranking", "podio"]
@@ -2438,6 +2440,8 @@ function mpLimpiar() {
   mpPodioCelebrado = false;
   detenerTimer();
   if (mpTimerMulti) { clearInterval(mpTimerMulti); mpTimerMulti = null; }
+  if (mpTimerHost) { clearInterval(mpTimerHost); mpTimerHost = null; }
+  mpAutoReloj = "";
 }
 
 function mpAbrirMenu() {
@@ -2609,6 +2613,23 @@ function mpPintarHost(sala) {
       }
     }, 1500);
   }
+  const claveReloj = "reloj:" + sala.preguntaActual;
+  if (mpAutoReloj !== claveReloj) {
+    mpAutoReloj = claveReloj;
+    if (mpTimerHost) { clearInterval(mpTimerHost); mpTimerHost = null; }
+    const inicio = sala.preguntaInicio || mpServidorAhora();
+    const duracion = (sala.tiempo || 20) * 1000;
+    mpTimerHost = setInterval(() => {
+      if (!mpUltimaSala || mpUltimaSala.estado !== "pregunta") {
+        if (mpTimerHost) { clearInterval(mpTimerHost); mpTimerHost = null; }
+        return;
+      }
+      if (mpServidorAhora() - inicio >= duracion) {
+        if (mpTimerHost) { clearInterval(mpTimerHost); mpTimerHost = null; }
+        fbDb.ref("salas/" + mpSala).update({ estado: "ranking" });
+      }
+    }, 250);
+  }
 }
 
 function mpMisPuntos(sala) {
@@ -2674,6 +2695,7 @@ function mpPintarDots(sala) {
 
 function mpIniciarTimerSincronizado(sala) {
   detenerTimer();
+  const idx = sala.preguntaActual;
   const inicio = sala.preguntaInicio || mpServidorAhora();
   tiempoRestante = tiempoPorPregunta;
   pintarTimer();
@@ -2683,7 +2705,7 @@ function mpIniciarTimerSincronizado(sala) {
     pintarTimer();
     if (tiempoRestante <= 0) {
       detenerTimer();
-      mpExpirar();
+      if (mpUltimaSala && mpUltimaSala.preguntaActual === idx) mpExpirar();
     }
   }, 100);
 }
@@ -2788,8 +2810,8 @@ function mpPintarPodio(sala) {
     if (!j) return "";
     return `<div class="podio-lugar l${pos + 1}"><span class="medalla">${pos + 1}</span><span class="nombre-podio">${escaparHtml(j.nombre)}</span><span class="puntos-podio">${j.puntos} pts</span></div>`;
   }).join("");
-  document.getElementById("multi-podio-lista").innerHTML = jugadores.slice(3).map((j, i) =>
-    `<div class="fila-rank"><span class="pos">${i + 4}</span><span class="info-rank"><b>${escaparHtml(j.nombre)}</b></span><span style="margin-left:auto;font-weight:700;color:#a5b4fc;">${j.puntos} pts</span></div>`).join("");
+  document.getElementById("multi-podio-lista").innerHTML = jugadores.map((j, i) =>
+    `<div class="fila-rank top${i + 1}${j.id === mpJugadorId ? " actual" : ""}"><span class="pos">${i + 1}</span><span class="info-rank"><b>${escaparHtml(j.nombre)}</b></span><span style="margin-left:auto;font-weight:700;color:#a5b4fc;">${j.puntos} pts</span></div>`).join("");
   if (!mpPodioCelebrado) {
     mpPodioCelebrado = true;
     const mio = jugadores.find(j => j.id === mpJugadorId);
