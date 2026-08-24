@@ -2363,7 +2363,7 @@ function rkCargar(cb) {
     try {
       mpInit();
       fbDb.ref("ranking").orderByChild("puntos").limitToLast(20).once("value")
-        .then(s => cb(s.val()))
+        .then(s => cb(s.val() || {}))
         .catch(() => cb(null));
     } catch (e) { cb(null); }
   }, () => cb(null));
