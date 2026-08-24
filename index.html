@@ -278,6 +278,24 @@
   }
   .fila-rank.actual { border-color: rgba(99,102,241,0.55); background: rgba(99,102,241,0.12); }
   .posicion-actual { text-align: center; color: var(--texto-suave); font-size: 0.85rem; margin-top: 12px; }
+  .zona-top { margin-top: 6px; }
+  .estado-top { color: var(--texto-suave); font-size: 0.92rem; min-height: 22px; margin-top: 10px; }
+  .estado-top.ok { color: var(--verde); font-weight: 700; }
+  .nombre-input-row { display: flex; gap: 10px; justify-content: center; align-items: center; flex-wrap: wrap; margin-top: 12px; }
+  .nombre-input-row .input-multi { max-width: 250px; font-size: 1rem; letter-spacing: normal; padding: 12px 16px; }
+  .nombre-input-row .boton { font-size: 0.98rem; padding: 12px 26px; }
+  .fila-rank .avatar {
+    width: 30px; height: 30px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 0.82rem; color: #fff; flex-shrink: 0;
+  }
+  .modo-tag {
+    flex-shrink: 0;
+    font-size: 0.6rem; font-weight: 800; letter-spacing: 1px;
+    padding: 3px 8px; border-radius: 99px;
+    background: rgba(255,255,255,0.08); color: var(--texto-suave);
+    border: 1px solid rgba(255,255,255,0.1);
+  }
   .stats-globales { text-align: center; color: var(--texto-suave); font-size: 0.92rem; margin-top: 22px; letter-spacing: 0.3px; }
   .stats-globales b { color: var(--texto); }
 
@@ -636,10 +654,14 @@
   <p class="subtitulo">Elige un tema · 30 segundos por pregunta · orden aleatorio</p>
   <div class="lobby-grid" id="lobby-grid"></div>
   <p class="stats-globales" id="stats-globales" style="display:none"></p>
-  <div style="margin-top:26px;">
+  <div style="margin-top:26px; display:flex; gap:12px; justify-content:center; flex-wrap:wrap;">
     <button class="boton boton-secundario" id="btn-multi-abrir">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px;vertical-align:-4px;margin-right:8px;"><circle cx="9" cy="8" r="4"/><path d="M2 21c0-3.9 3.1-7 7-7s7 3.1 7 7"/><circle cx="18" cy="9" r="3"/><path d="M16.5 14.6c2.9.6 5.5 3 5.5 6.4"/></svg>
       Modo multijugador en vivo
+    </button>
+    <button class="boton boton-secundario" id="btn-top-abrir">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px;vertical-align:-4px;margin-right:8px;"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
+      Top global
     </button>
   </div>
 </div>
@@ -695,10 +717,29 @@
     <div class="stat stat-ambar"><b id="stat-timeout">0</b><span>Sin responder</span></div>
   </div>
   <p class="detalle-final" id="detalle-final"></p>
+  <div class="zona-top" id="zona-top" style="display:none">
+    <div class="estado-top" id="top-enviado" style="display:none"></div>
+    <div class="nombre-input-row" id="top-formulario" style="display:none">
+      <input class="input-multi" id="top-input-nombre" maxlength="14" placeholder="Tu nombre para el Top" autocomplete="off">
+      <button class="boton" id="btn-top-enviar">Enviar al Top</button>
+    </div>
+    <div class="estado-top" id="top-error"></div>
+  </div>
   <div class="ranking-final" id="ranking-final"></div>
   <div class="zona-botones-final">
     <button class="boton" id="btn-repetir">Jugar otra vez</button>
     <button class="boton boton-secundario" id="btn-lobby">Volver al inicio</button>
+  </div>
+</div>
+
+<div class="tarjeta oculto" id="pantalla-top">
+  <div class="brillo-linea"></div>
+  <h2>Top Global</h2>
+  <p class="subtitulo" style="margin-bottom:22px">Las mejores puntuaciones de todos los jugadores</p>
+  <div id="top-lista" style="max-width:560px;margin:0 auto;"></div>
+  <div class="multi-error" id="top-error-carga"></div>
+  <div class="zona-botones-final" style="margin-top:16px;">
+    <button class="boton boton-secundario" id="btn-top-refrescar">Actualizar</button>
   </div>
 </div>
 
@@ -1242,6 +1283,22 @@ $mute.onclick = alternarSonido;
 pintarMute();
 
 const CLAVE_HISTORIAL = "cyberquiz_historial";
+const CLAVE_NOMBRE = "cyberquiz_nombre";
+let topEnviadoEsteJuego = false;
+let ultimoRegistroSolo = null;
+
+function obtenerNombre() {
+  try { return localStorage.getItem(CLAVE_NOMBRE) || ""; } catch (e) { return ""; }
+}
+
+function guardarNombre(n) {
+  try { localStorage.setItem(CLAVE_NOMBRE, n); } catch (e) {}
+}
+
+function fmtFechaCorta(f) {
+  const d = new Date(f);
+  return d.getDate() + "/" + (d.getMonth() + 1) + "/" + String(d.getFullYear()).slice(2);
+}
 
 function cargarHistorial() {
   try {
@@ -1662,6 +1719,7 @@ function terminar() {
   const registro = {
     id: quizActual.id,
     badge: quizActual.badge,
+    titulo: quizActual.titulo,
     pct: pct,
     puntos: puntos,
     ok: aciertos,
@@ -1669,6 +1727,7 @@ function terminar() {
     fecha: Date.now()
   };
   guardarEnHistorial(registro);
+  prepararEnvioTop(registro);
   pintarRankingFinal(registro);
   setTimeout(() => (pct >= 70 ? sonidos.victoria() : sonidos.derrota()), 350);
 }
@@ -1680,16 +1739,12 @@ function pintarRankingFinal(actual) {
     .sort((a, b) => b.pct - a.pct || b.puntos - a.puntos || a.fecha - b.fecha);
   const top = lista.slice(0, 3);
   const posicion = lista.findIndex(r => r.fecha === actual.fecha) + 1;
-  const fmtFecha = f => {
-    const d = new Date(f);
-    return d.getDate() + "/" + (d.getMonth() + 1) + "/" + String(d.getFullYear()).slice(2);
-  };
   caja.innerHTML =
     "<h3>Tus mejores partidas · " + actual.badge + "</h3>" +
     top.map((r, i) =>
       `<div class="fila-rank top${i + 1}${r.fecha === actual.fecha ? " actual" : ""}">` +
       `<span class="pos">${i + 1}</span>` +
-      `<span class="info-rank"><b>${r.pct}%</b> · ${r.puntos} pts · ${fmtFecha(r.fecha)}</span>` +
+      `<span class="info-rank"><b>${r.pct}%</b> · ${r.puntos} pts · ${fmtFechaCorta(r.fecha)}</span>` +
       (r.fecha === actual.fecha ? '<span class="chip-nueva">Esta partida</span>' : "") +
       "</div>"
     ).join("") +
@@ -1832,7 +1887,7 @@ function mpCargado() {
   return FIREBASE_CONFIG.apiKey.indexOf("PEGA_AQUI") === -1 && FIREBASE_CONFIG.databaseURL.indexOf("PEGA_AQUI") === -1;
 }
 
-function mpCargarSDK(cb) {
+function mpCargarSDK(cb, onErr) {
   if (window.firebase && firebase.database) { cb(); return; }
   const urls = [
     "https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js",
@@ -1846,6 +1901,7 @@ function mpCargarSDK(cb) {
     s.onload = siguiente;
     s.onerror = () => {
       document.getElementById("multi-error-menu").textContent = "No se pudo conectar con Firebase. Revisa tu internet e intenta de nuevo.";
+      if (onErr) onErr();
     };
     document.head.appendChild(s);
   })();
@@ -2235,6 +2291,12 @@ function mpPintarPodio(sala) {
     const mio = jugadores.find(j => j.id === mpJugadorId);
     if (mio && jugadores[0] && mio.id === jugadores[0].id) lanzarConfeti();
     sonidos.victoria();
+    try {
+      const nombre = obtenerNombre() || (mio ? mio.nombre : "");
+      if (nombre && nombre.length >= 2 && mio) {
+        rkEnviar({ nombre: nombre, puntos: mio.puntos || 0, pct: null, badge: sala.badge, titulo: sala.titulo, modo: "multi" });
+      }
+    } catch (e) {}
   }
 }
 
@@ -2277,6 +2339,130 @@ function mpIntentarUnirse() {
   });
 }
 
+function rkEnviar(datos, cb, cbErr) {
+  mpCargarSDK(() => {
+    try {
+      mpInit();
+      fbDb.ref("ranking").push({
+        nombre: datos.nombre,
+        puntos: datos.puntos,
+        pct: typeof datos.pct === "number" ? datos.pct : null,
+        badge: datos.badge || "",
+        titulo: datos.titulo || "",
+        modo: datos.modo === "multi" ? "multi" : "solo",
+        fecha: firebase.database.ServerValue.TIMESTAMP
+      }).then(() => { if (cb) cb(); }).catch(err => { if (cbErr) cbErr(err); });
+    } catch (err) { if (cbErr) cbErr(err); }
+  }, () => { if (cbErr) cbErr(new Error("sdk")); });
+}
+
+function rkCargar(cb) {
+  mpCargarSDK(() => {
+    try {
+      mpInit();
+      fbDb.ref("ranking").orderByChild("puntos").limitToLast(20).once("value")
+        .then(s => cb(s.val()))
+        .catch(() => cb(null));
+    } catch (e) { cb(null); }
+  }, () => cb(null));
+}
+
+function abrirTop() {
+  detenerTimer();
+  categoriaAbierta = null;
+  $lobby.classList.add("oculto");
+  $quiz.classList.add("oculto");
+  $final.classList.add("oculto");
+  document.getElementById("pantalla-categoria").classList.add("oculto");
+  Object.values(PANTALLAS_MULTI).forEach(el => el.classList.add("oculto"));
+  const btnAtras = document.getElementById("btn-atras");
+  btnAtras.classList.remove("oculto");
+  btnAtras.onclick = abrirLobby;
+  reiniciarAnimacion(document.getElementById("pantalla-top"));
+  cargarListaTop();
+}
+
+function cargarListaTop() {
+  const cont = document.getElementById("top-lista");
+  document.getElementById("top-error-carga").textContent = "";
+  cont.innerHTML = '<p class="multi-estado">Cargando Top global...</p>';
+  rkCargar(pintarTop);
+}
+
+function pintarTop(datos) {
+  const cont = document.getElementById("top-lista");
+  const err = document.getElementById("top-error-carga");
+  if (datos === null) {
+    cont.innerHTML = "";
+    err.textContent = "No se pudo cargar el Top. Revisa tu internet e intenta de nuevo.";
+    return;
+  }
+  err.textContent = "";
+  const lista = Object.values(datos)
+    .sort((a, b) => (b.puntos || 0) - (a.puntos || 0) || (b.pct || 0) - (a.pct || 0) || (a.fecha || 0) - (b.fecha || 0))
+    .slice(0, 15);
+  if (!lista.length) {
+    cont.innerHTML = '<p class="multi-estado">Aún no hay puntuaciones en el Top. ¡Sé el primero!</p>';
+    return;
+  }
+  cont.innerHTML = lista.map((r, i) => filaTop(r, i)).join("");
+}
+
+function filaTop(r, i) {
+  const nombre = r.nombre || "Anónimo";
+  return '<div class="fila-rank' + (i < 3 ? " top" + (i + 1) : "") + '">' +
+    '<span class="pos">' + (i + 1) + '</span>' +
+    '<span class="avatar" style="background:' + colorAvatar(nombre) + '">' + escaparHtml(nombre.charAt(0).toUpperCase()) + '</span>' +
+    '<span class="info-rank"><b>' + escaparHtml(nombre) + '</b> · ' + escaparHtml(r.badge || "") + ' · ' + fmtFechaCorta(r.fecha) + '</span>' +
+    '<span class="modo-tag">' + (r.modo === "multi" ? "MULTI" : "SOLO") + '</span>' +
+    '<span style="margin-left:auto;font-weight:700;color:#a5b4fc;">' + (r.puntos || 0) + ' pts</span>' +
+    '</div>';
+}
+
+function prepararEnvioTop(registro) {
+  topEnviadoEsteJuego = false;
+  ultimoRegistroSolo = registro;
+  const zona = document.getElementById("zona-top");
+  const form = document.getElementById("top-formulario");
+  const enviado = document.getElementById("top-enviado");
+  zona.style.display = "block";
+  enviado.style.display = "none";
+  enviado.className = "estado-top";
+  const nombre = obtenerNombre();
+  if (nombre.length >= 2) {
+    form.style.display = "none";
+    enviarAlTop(nombre, registro);
+  } else {
+    document.getElementById("top-input-nombre").value = "";
+    document.getElementById("top-error").textContent = "";
+    form.style.display = "flex";
+  }
+}
+
+function enviarAlTop(nombre, registro) {
+  if (!registro || topEnviadoEsteJuego) return;
+  const form = document.getElementById("top-formulario");
+  const enviado = document.getElementById("top-enviado");
+  const err = document.getElementById("top-error");
+  err.textContent = "Enviando puntuación al Top...";
+  rkEnviar(
+    { nombre: nombre, puntos: registro.puntos, pct: registro.pct, badge: registro.badge, titulo: registro.titulo, modo: "solo" },
+    () => {
+      topEnviadoEsteJuego = true;
+      guardarNombre(nombre);
+      form.style.display = "none";
+      err.textContent = "";
+      enviado.className = "estado-top ok";
+      enviado.style.display = "block";
+      enviado.textContent = "Enviado al Top global como \"" + nombre + "\"";
+    },
+    () => {
+      err.textContent = "No se pudo enviar al Top. Revisa tu internet e intenta de nuevo.";
+      form.style.display = "flex";
+    }
+  );
+}
+
 document.getElementById("btn-multi-abrir").onclick = mpAbrirMenu;
 document.getElementById("btn-multi-crear").onclick = () => {
   if (!mpCargado()) {
@@ -2310,6 +2496,18 @@ document.getElementById("btn-multi-salir").onclick = () => { if (mpEsAnfitrion) 
 document.getElementById("btn-multi-entrar").onclick = mpIntentarUnirse;
 document.getElementById("multi-input-codigo").addEventListener("keydown", e => { if (e.key === "Enter") document.getElementById("multi-input-nombre").focus(); });
 document.getElementById("multi-input-nombre").addEventListener("keydown", e => { if (e.key === "Enter") mpIntentarUnirse(); });
+
+document.getElementById("btn-top-abrir").onclick = abrirTop;
+document.getElementById("btn-top-refrescar").onclick = cargarListaTop;
+document.getElementById("btn-top-enviar").onclick = () => {
+  const nombre = document.getElementById("top-input-nombre").value.trim().replace(/\s+/g, " ");
+  if (nombre.length < 2) {
+    document.getElementById("top-error").textContent = "Escribe tu nombre (mínimo 2 letras).";
+    return;
+  }
+  enviarAlTop(nombre, ultimoRegistroSolo);
+};
+document.getElementById("top-input-nombre").addEventListener("keydown", e => { if (e.key === "Enter") document.getElementById("btn-top-enviar").click(); });
 
 abrirLobby();
 </script>
