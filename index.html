@@ -1363,6 +1363,7 @@ function abrirLobby() {
 
 function abrirCategoria(id) {
   categoriaAbierta = id;
+  detenerTimer();
   const cat = CATEGORIAS.find(c => c.id === id);
   document.getElementById("cat-titulo").textContent = cat.titulo;
   document.getElementById("cat-sub").textContent = cat.desc;
@@ -1433,6 +1434,7 @@ function iniciarQuiz(id) {
   document.getElementById("racha").classList.remove("visible");
   $lobby.classList.add("oculto");
   $final.classList.add("oculto");
+  document.getElementById("pantalla-categoria").classList.add("oculto");
   document.getElementById("btn-atras").classList.remove("oculto");
   reiniciarAnimacion($quiz);
   mostrarPregunta();
@@ -1562,12 +1564,13 @@ function responder(i, btn) {
   const p = quizActual.preguntas[actual];
 
   if (i === p.ok) {
-    puntos += 10 + racha * 2;
+    const ganancia = 10 + racha * 2;
+    puntos += ganancia;
     aciertos++;
     racha++;
     btn.classList.add("correcta");
     revelarRespuesta(null);
-    mostrarExplicacion("bien", racha >= 3 ? `¡Correcto! Racha de ${racha} · +${10 + (racha - 1) * 2} pts` : "¡Correcto! +10 pts");
+    mostrarExplicacion("bien", racha >= 3 ? `¡Correcto! Racha de ${racha} · +${ganancia} pts` : `¡Correcto! +${ganancia} pts`);
     sonidos.acierto(racha);
     actualizarDotActual("ok");
   } else {
@@ -1648,11 +1651,12 @@ function terminar() {
   document.getElementById("stat-ok").textContent = aciertos;
   document.getElementById("stat-mal").textContent = fallos;
   document.getElementById("stat-timeout").textContent = agotados;
+  const previoMejor = parseInt(mejorPuntaje(quizActual.id) || "0", 10);
   guardarMejor(quizActual.id, pct);
-  const previoMejor = mejorPuntaje(quizActual.id) === String(pct) && pct > 0;
+  const esRecord = pct > previoMejor && pct > 0;
   document.getElementById("detalle-final").textContent =
     `Acertaste ${aciertos} de ${total} preguntas · Puntuación: ${puntos} pts` +
-    (previoMejor ? " · ¡Nuevo récord!" : "");
+    (esRecord ? " · ¡Nuevo récord!" : "");
   document.getElementById("btn-repetir").onclick = () => iniciarQuiz(quizActual.id);
   if (pct >= 70) lanzarConfeti();
   const registro = {
@@ -1769,6 +1773,8 @@ document.addEventListener("pointerdown", e => {
 });
 
 document.addEventListener("keydown", e => {
+  const t = e.target;
+  if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)) return;
   if ((e.key === "m" || e.key === "M") && !e.ctrlKey && !e.metaKey && !e.altKey) {
     alternarSonido();
     return;
@@ -1816,6 +1822,7 @@ let mpUltimaRender = "";
 let mpAutoKey = "";
 let mpTimerMulti = null;
 let mpEnMulti = false;
+let mpPodioCelebrado = false;
 
 const COLORES_AVATAR = ["#6366f1", "#8b5cf6", "#ec4899", "#f59e0b", "#10b981", "#06b6d4", "#f43f5e", "#84cc16"];
 const PANTALLAS_MULTI = ["menu", "crear", "sala", "unirse", "espera", "host", "ranking", "podio"]
@@ -1881,6 +1888,7 @@ function mpLimpiar() {
   mpUltimaRender = "";
   mpAutoKey = "";
   mpEnMulti = false;
+  mpPodioCelebrado = false;
   detenerTimer();
   if (mpTimerMulti) { clearInterval(mpTimerMulti); mpTimerMulti = null; }
 }
@@ -2099,7 +2107,7 @@ function mpPintarDots(sala) {
     const d = document.createElement("span");
     let cls = "dot";
     if (i === sala.preguntaActual) cls += " actual";
-    else if (mia[i] !== undefined && mia[i] !== null) cls += mia[i].op === sala.preguntas[i].ok ? " ok" : " mal";
+    else if (mia[i] !== undefined && mia[i] !== null) cls += mia[i].op === -1 ? " to" : (mia[i].op === sala.preguntas[i].ok ? " ok" : " mal");
     d.className = cls;
     cont.appendChild(d);
   }
@@ -2222,9 +2230,12 @@ function mpPintarPodio(sala) {
   }).join("");
   document.getElementById("multi-podio-lista").innerHTML = jugadores.slice(3).map((j, i) =>
     `<div class="fila-rank"><span class="pos">${i + 4}</span><span class="info-rank"><b>${escaparHtml(j.nombre)}</b></span><span style="margin-left:auto;font-weight:700;color:#a5b4fc;">${j.puntos} pts</span></div>`).join("");
-  const mio = jugadores.find(j => j.id === mpJugadorId);
-  if (mio && jugadores[0] && mio.id === jugadores[0].id) lanzarConfeti();
-  sonidos.victoria();
+  if (!mpPodioCelebrado) {
+    mpPodioCelebrado = true;
+    const mio = jugadores.find(j => j.id === mpJugadorId);
+    if (mio && jugadores[0] && mio.id === jugadores[0].id) lanzarConfeti();
+    sonidos.victoria();
+  }
 }
 
 function mpCerrarSala() {
