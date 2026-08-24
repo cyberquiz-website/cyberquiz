@@ -296,6 +296,22 @@
     background: rgba(255,255,255,0.08); color: var(--texto-suave);
     border: 1px solid rgba(255,255,255,0.1);
   }
+  .selector-dificultad { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-bottom: 22px; }
+  .dif-chip {
+    font-family: inherit; cursor: pointer;
+    background: rgba(255,255,255,0.05);
+    border: 1.5px solid rgba(255,255,255,0.12);
+    color: var(--texto-suave);
+    padding: 9px 20px; border-radius: 999px;
+    font-weight: 700; font-size: 0.92rem;
+    transition: all 0.18s cubic-bezier(.2,.8,.3,1);
+  }
+  .dif-chip:hover { border-color: var(--acento); color: var(--texto); transform: translateY(-2px); }
+  .dif-chip.activo {
+    background: linear-gradient(92deg, var(--acento), var(--acento2));
+    color: #fff; border-color: transparent;
+    box-shadow: 0 8px 22px rgba(99,102,241,0.4);
+  }
   .stats-globales { text-align: center; color: var(--texto-suave); font-size: 0.92rem; margin-top: 22px; letter-spacing: 0.3px; }
   .stats-globales b { color: var(--texto); }
 
@@ -651,7 +667,7 @@
     </svg>
     <h1 aria-label="CyberQuiz"><span style="--i:0">C</span><span style="--i:1">y</span><span style="--i:2">b</span><span style="--i:3">e</span><span style="--i:4">r</span><span style="--i:5">Q</span><span style="--i:6">u</span><span style="--i:7">i</span><span style="--i:8">z</span></h1>
   </div>
-  <p class="subtitulo">Elige un tema · 30 segundos por pregunta · orden aleatorio</p>
+  <p class="subtitulo">Elige tema y dificultad · 20s, 15s o 10s por pregunta · orden aleatorio</p>
   <div class="lobby-grid" id="lobby-grid"></div>
   <p class="stats-globales" id="stats-globales" style="display:none"></p>
   <div style="margin-top:26px; display:flex; gap:12px; justify-content:center; flex-wrap:wrap;">
@@ -674,6 +690,7 @@
       <p class="subtitulo-cat" id="cat-sub"></p>
     </div>
   </div>
+  <div class="selector-dificultad" id="selector-dificultad"></div>
   <div class="lobby-grid" id="categoria-grid"></div>
 </div>
 
@@ -765,6 +782,7 @@
 <div class="tarjeta oculto" id="pantalla-multi-crear">
   <h2>Elige el quiz de la sala</h2>
   <p class="subtitulo">Las preguntas y respuestas se barajan para todos</p>
+  <div class="selector-dificultad" id="selector-dificultad-multi"></div>
   <div class="lobby-grid" id="multi-grid-quizzes"></div>
 </div>
 
@@ -836,7 +854,21 @@
 </div>
 
 <script>
-const TIEMPO_PREGUNTA = 30;
+const DIFICULTADES = {
+  facil: { etiqueta: "Fácil", tiempo: 20, base: 10, baseMulti: 500 },
+  medio: { etiqueta: "Medio", tiempo: 15, base: 15, baseMulti: 750 },
+  dificil: { etiqueta: "Difícil", tiempo: 10, base: 20, baseMulti: 1000 }
+};
+
+function cargarDificultad() {
+  try {
+    const d = localStorage.getItem("cyberquiz_dificultad");
+    return DIFICULTADES[d] ? d : "facil";
+  } catch (e) { return "facil"; }
+}
+
+let dificultad = cargarDificultad();
+let tiempoPorPregunta = DIFICULTADES[dificultad].tiempo;
 
 const quizzes = [
   {
@@ -905,7 +937,87 @@ const quizzes = [
       { q: "¿Qué palabra evita filas REPETIDAS en el resultado de una consulta?",
         ops: ["UNIQUE", "DISTINCT", "NOREPEAT", "SINGLE"],
         ok: 1,
-        exp: "SELECT DISTINCT ciudad FROM clientes; devuelve cada ciudad una sola vez, sin duplicados." }
+        exp: "SELECT DISTINCT ciudad FROM clientes; devuelve cada ciudad una sola vez, sin duplicados." },
+      { q: "¿Qué cláusula une filas de DOS tablas usando una columna en común?",
+        ops: ["GLUE BY", "JOIN ... ON", "UNION ALL", "CONNECT TO"],
+        ok: 1, niv: "medio",
+        exp: "SELECT * FROM alumnos JOIN notas ON alumnos.id = notas.alumno_id; combina filas de ambas tablas donde la condición se cumple." },
+      { q: "¿Para qué sirve GROUP BY?",
+        ops: ["Para ordenar filas alfabéticamente", "Para agrupar filas con el mismo valor y aplicar funciones como COUNT o SUM", "Para borrar grupos de filas", "Para unir dos tablas"],
+        ok: 1, niv: "medio",
+        exp: "SELECT ciudad, COUNT(*) FROM clientes GROUP BY ciudad; crea un grupo por ciudad y cuenta cuántos registros hay en cada una." },
+      { q: "¿Qué cláusula filtra resultados DESPUÉS de agrupar con GROUP BY?",
+        ops: ["WHERE", "HAVING", "FILTER", "AS"],
+        ok: 1, niv: "medio",
+        exp: "HAVING filtra grupos: GROUP BY ciudad HAVING COUNT(*) > 5. WHERE filtra filas ANTES de agrupar; HAVING lo hace después." },
+      { q: "¿Qué comando agrega una columna NUEVA a una tabla existente?",
+        ops: ["UPDATE TABLE ADD", "ALTER TABLE ... ADD COLUMN", "INSERT COLUMN", "MODIFY TABLE"],
+        ok: 1, niv: "medio",
+        exp: "ALTER TABLE alumnos ADD COLUMN email VARCHAR(100); modifica la estructura de la tabla sin borrar los datos existentes." },
+      { q: "¿Qué devuelve un LEFT JOIN?",
+        ops: ["Solo las filas que coinciden en ambas tablas", "Todas las filas de la tabla izquierda, con o sin coincidencia", "Todas las filas de ambas tablas siempre", "Solo las filas que NO coinciden"],
+        ok: 1, niv: "medio",
+        exp: "LEFT JOIN conserva TODAS las filas de la tabla izquierda; cuando no hay coincidencia, las columnas de la tabla derecha aparecen como NULL." },
+      { q: "¿Qué es una subconsulta?",
+        ops: ["Una copia de seguridad de una tabla", "Una consulta dentro de otra consulta", "Una consulta que falla", "Un índice especial"],
+        ok: 1, niv: "medio",
+        exp: "SELECT * FROM alumnos WHERE nota > (SELECT AVG(nota) FROM alumnos); la consulta interna se ejecuta primero y su resultado alimenta a la externa." },
+      { q: "¿Cuál es la diferencia entre COUNT(*) y COUNT(columna)?",
+        ops: ["Son idénticos", "COUNT(columna) ignora los valores NULL; COUNT(*) cuenta todas las filas", "COUNT(*) no funciona con JOIN", "COUNT(columna) cuenta columnas, no filas"],
+        ok: 1, niv: "medio",
+        exp: "COUNT(email) solo cuenta filas donde email NO es nulo. COUNT(*) cuenta absolutamente todas las filas de la tabla." },
+      { q: "¿Para qué sirve un índice (INDEX) en una columna?",
+        ops: ["Para encriptar los datos", "Para acelerar las búsquedas y consultas sobre esa columna", "Para impedir que se borren filas", "Para ordenar visualmente la tabla"],
+        ok: 1, niv: "medio",
+        exp: "Un índice funciona como el índice de un libro: localiza filas sin recorrer toda la tabla. Costo: ocupa espacio y hace los INSERT un poco más lentos." },
+      { q: "¿Qué función calcula el PROMEDIO de una columna numérica?",
+        ops: ["MEDIAN()", "AVG()", "PROM()", "AVERAGE()"],
+        ok: 1, niv: "medio",
+        exp: "SELECT AVG(nota) FROM alumnos; devuelve el promedio de todas las notas. Otras agregaciones: SUM, MAX, MIN, COUNT." },
+      { q: "¿Qué hace LIMIT 5 al final de una consulta?",
+        ops: ["Limita los permisos del usuario", "Devuelve solo las primeras 5 filas del resultado", "Limita el tamaño de la base de datos", "Repite el resultado 5 veces"],
+        ok: 1, niv: "medio",
+        exp: "SELECT * FROM productos ORDER BY precio DESC LIMIT 5; trae los 5 productos más caros. Combinado con ORDER BY crea rankings." },
+      { q: "En las propiedades ACID de una transacción, ¿qué significa la D?",
+        ops: ["Distribución", "Durabilidad", "Determinismo", "Deduplicación"],
+        ok: 1, niv: "dificil",
+        exp: "Durabilidad: lo confirmado con COMMIT sobrevive incluso a una caída del sistema. ACID = Atomicidad, Consistencia, Aislamiento y Durabilidad." },
+      { q: "¿Qué problema resuelve la Tercera Forma Normal (3FN)?",
+        ops: ["La lentitud de las consultas", "Las dependencias transitivas entre columnas", "La falta de llaves primarias", "Los datos duplicados entre tablas"],
+        ok: 1, niv: "dificil",
+        exp: "3FN exige que ninguna columna no clave dependa de otra columna no clave. Ejemplo clásico: guardar el nombre del estado repetido en cada fila de ciudad." },
+      { q: "¿Qué hace FOREIGN KEY ... ON DELETE CASCADE?",
+        ops: ["Impide borrar la tabla padre", "Al borrar una fila padre, borra automáticamente sus filas hijas relacionadas", "Convierte la llave foránea en primaria", "Deja las filas hijas huérfanas con NULL"],
+        ok: 1, niv: "dificil",
+        exp: "Con ON DELETE CASCADE, borrar un cliente borra también todos sus pedidos. La alternativa SET NULL dejaría los pedidos con cliente_id nulo." },
+      { q: "¿Qué devuelve ROW_NUMBER() OVER (PARTITION BY ciudad ORDER BY nota DESC)?",
+        ops: ["El promedio de notas por ciudad", "Un número consecutivo por fila, reiniciado en cada ciudad, ordenado por nota", "El total de filas de la tabla", "Un error: OVER no admite ORDER BY"],
+        ok: 1, niv: "dificil",
+        exp: "Las funciones de ventana numeran filas sin colapsarlas: cada ciudad forma un grupo y dentro de él se numera 1, 2, 3... según la nota descendente." },
+      { q: "¿Cuál es la diferencia entre UNION y UNION ALL?",
+        ops: ["No hay ninguna", "UNION elimina filas duplicadas; UNION ALL las conserva todas", "UNION ALL ordena el resultado", "UNION solo funciona con dos columnas"],
+        ok: 1, niv: "dificil",
+        exp: "UNION aplica un DISTINCT implícito (más lento). UNION ALL devuelve todo, duplicados incluidos, y por eso rinde mejor cuando no hay repetidos." },
+      { q: "¿Qué es un deadlock (interbloqueo)?",
+        ops: ["Una consulta muy lenta", "Dos transacciones que se bloquean mutuamente esperando recursos la una de la otra", "Una tabla sin llave primaria", "Un error de sintaxis en un JOIN"],
+        ok: 1, niv: "dificil",
+        exp: "La transacción A bloquea la fila 1 y espera la 2; B bloquea la 2 y espera la 1. El motor detecta el círculo y cancela a una de las dos." },
+      { q: "¿Qué es una VIEW (vista) en SQL?",
+        ops: ["Una copia física de una tabla", "Una tabla virtual basada en el resultado de una consulta", "Un diagrama de la base de datos", "Un permiso de solo lectura"],
+        ok: 1, niv: "dificil",
+        exp: "CREATE VIEW alumnos_aprobados AS SELECT ...; se consulta como una tabla pero no almacena datos: ejecuta su consulta subyacente cada vez que la usas." },
+      { q: "¿Qué nivel de aislamiento evita las lecturas sucias pero permite las lecturas no repetibles?",
+        ops: ["READ UNCOMMITTED", "READ COMMITTED", "SERIALIZABLE", "Ninguno existe con ese comportamiento"],
+        ok: 1, niv: "dificil",
+        exp: "READ COMMITTED solo lee datos confirmados (nada de lecturas sucias), pero otro puede modificar un dato entre dos lecturas tuyas: eso es una lectura no repetible." },
+      { q: "¿Cuál es la diferencia clave entre TRUNCATE TABLE y DELETE FROM sin WHERE?",
+        ops: ["Son exactamente iguales", "TRUNCATE es casi instantáneo, reinicia el AUTO_INCREMENT y no admite WHERE", "DELETE borra la estructura de la tabla", "TRUNCATE siempre se puede deshacer"],
+        ok: 1, niv: "dificil",
+        exp: "TRUNCATE es DDL: vacía la tabla de inmediato y reinicia el contador. DELETE es DML, trabaja fila por fila y conserva el contador de autoincremento." },
+      { q: "¿Para qué sirve la sentencia EXPLAIN antes de una consulta?",
+        ops: ["Para ejecutarla en otro servidor", "Para mostrar el plan de ejecución sin ejecutar la consulta", "Para explicar errores de sintaxis", "Para exportar el resultado a texto"],
+        ok: 1, niv: "dificil",
+        exp: "EXPLAIN SELECT ...; revela qué índices se usan, cuántas filas se examinarán y qué joins se harán. Es LA herramienta para optimizar consultas lentas." }
     ]
   },
   {
@@ -974,7 +1086,87 @@ const quizzes = [
       { q: "¿Cómo cambias la contraseña de un usuario llamado ana?",
         ops: ["SET PASSWORD ana = 'nueva';", "ALTER USER 'ana'@'localhost' IDENTIFIED BY 'nueva';", "CHANGE PASSWORD ana;", "UPDATE USER ana PASSWORD 'nueva';"],
         ok: 1,
-        exp: "ALTER USER ... IDENTIFIED BY 'nueva contraseña'; actualiza la clave de acceso de cualquier usuario." }
+        exp: "ALTER USER ... IDENTIFIED BY 'nueva contraseña'; actualiza la clave de acceso de cualquier usuario." },
+      { q: "¿Qué comando muestra las conexiones y consultas activas del servidor?",
+        ops: ["SHOW USERS;", "SHOW PROCESSLIST;", "LIST SESSIONS;", "VIEW CONNECTIONS;"],
+        ok: 1, niv: "medio",
+        exp: "SHOW PROCESSLIST; lista cada conexión con su usuario, estado y la consulta que ejecuta. Clave para detectar consultas colgadas." },
+      { q: "¿Cuál es la principal ventaja del motor InnoDB sobre MyISAM?",
+        ops: ["Es más antiguo", "Soporta transacciones y llaves foráneas", "No usa memoria RAM", "Solo funciona en Linux"],
+        ok: 1, niv: "medio",
+        exp: "InnoDB es transaccional (COMMIT/ROLLBACK), bloquea a nivel de fila y respeta FOREIGN KEY. Por eso es el motor por defecto desde MySQL 5.5." },
+      { q: "¿Qué comando QUITA un permiso a un usuario?",
+        ops: ["DENY", "REVOKE", "REMOVE GRANT", "BLOCK"],
+        ok: 1, niv: "medio",
+        exp: "REVOKE INSERT ON tienda.* FROM 'ana'@'localhost'; retira el permiso que fue otorgado previamente con GRANT." },
+      { q: "¿Cómo restauras un respaldo llamado backup.sql?",
+        ops: ["mysql -u root -p tienda < backup.sql", "mysqldump --restore backup.sql", "LOAD BACKUP backup.sql;", "mysql --upload backup.sql"],
+        ok: 0, niv: "medio",
+        exp: "El respaldo se restaura redirigiendo el archivo al cliente mysql: mysql -u root -p tienda < backup.sql recrea tablas y datos." },
+      { q: "¿Qué propiedad hace que una columna numérica se numere sola (1, 2, 3...)?",
+        ops: ["SERIAL NUMBER", "AUTO_INCREMENT", "SELF_COUNT", "AUTO_ID"],
+        ok: 1, niv: "medio",
+        exp: "id INT AUTO_INCREMENT PRIMARY KEY genera automáticamente el siguiente número en cada INSERT. Ideal para llaves primarias." },
+      { q: "¿Qué comando muestra la estructura SQL con la que fue CREADA una tabla?",
+        ops: ["SHOW TABLE tabla;", "SHOW CREATE TABLE tabla;", "DESCRIBE CREATE tabla;", "EXPLAIN TABLE tabla;"],
+        ok: 1, niv: "medio",
+        exp: "SHOW CREATE TABLE tabla; devuelve el CREATE TABLE completo con columnas, tipos, índices y motor. Perfecto para clonar estructuras." },
+      { q: "¿Cómo cambias el nombre de una tabla?",
+        ops: ["ALTER TABLE viejo RENAME TO nuevo;", "CHANGE TABLE viejo TO nuevo;", "RENAME viejo nuevo INTO tabla;", "MOVE TABLE viejo nuevo;"],
+        ok: 0, niv: "medio",
+        exp: "ALTER TABLE viejo RENAME TO nuevo; (o RENAME TABLE viejo TO nuevo;) cambia el nombre sin tocar columnas ni datos." },
+      { q: "¿Qué hace FLUSH PRIVILEGES;?",
+        ops: ["Borra todos los usuarios", "Recarga la tabla de permisos tras cambiarla manualmente", "Reinicia el servidor completo", "Crea un respaldo de los permisos"],
+        ok: 1, niv: "medio",
+        exp: "Si editas mysql.user directamente, FLUSH PRIVILEGES; recarga los permisos en memoria. Con GRANT/REVOKE no hace falta: se aplican al instante." },
+      { q: "¿Qué variable indica DÓNDE MySQL guarda físicamente las bases de datos?",
+        ops: ["storage_path", "datadir", "db_root", "datafile"],
+        ok: 1, niv: "medio",
+        exp: "La variable datadir (por ejemplo /var/lib/mysql) apunta a la carpeta con los archivos de cada base. Se consulta: SHOW VARIABLES LIKE 'datadir';" },
+      { q: "¿Qué comando muestra contadores del servidor (consultas, conexiones, uptime)?",
+        ops: ["SHOW STATUS;", "SHOW LOGS;", "INFO SERVER;", "STATS FULL;"],
+        ok: 0, niv: "medio",
+        exp: "SHOW STATUS; expone cientos de contadores como Threads_connected, Uptime y Questions. Fundamental para monitoreo y diagnóstico." },
+      { q: "¿Para qué sirve el registro binario (binlog) de MySQL?",
+        ops: ["Para guardar contraseñas cifradas", "Para la replicación y la recuperación punto en el tiempo", "Para acelerar los SELECT", "Para comprimir las tablas"],
+        ok: 1, niv: "dificil",
+        exp: "El binlog registra cada cambio de datos: un esclavo lo lee para replicar, y ante un desastre restauras el backup y 'reproduces' el binlog hasta el segundo exacto." },
+      { q: "En la replicación maestro-esclavo, ¿qué hace el esclavo con los eventos del maestro?",
+        ops: ["Los borra tras leerlos", "Los lee de su relay log y los reejecuta localmente", "Los envía a otro maestro", "Los convierte en índices"],
+        ok: 1, niv: "dificil",
+        exp: "El hilo de E/S del esclavo copia el binlog del maestro a su relay log; el hilo SQL aplica esos cambios localmente. Resultado: una copia casi en tiempo real." },
+      { q: "¿Qué es el buffer pool de InnoDB?",
+        ops: ["La cola de conexiones pendientes", "La zona de memoria que cachea páginas de datos e índices", "El archivo de logs de errores", "Un respaldo automático en RAM"],
+        ok: 1, niv: "dificil",
+        exp: "El buffer pool guarda en RAM las páginas más usadas: leer de memoria es cientos de veces más rápido que de disco. Su tamaño (innodb_buffer_pool_size) es el ajuste clave de rendimiento." },
+      { q: "¿Cuál es el nivel de aislamiento POR DEFECTO de InnoDB?",
+        ops: ["READ UNCOMMITTED", "READ COMMITTED", "REPEATABLE READ", "SERIALIZABLE"],
+        ok: 2, niv: "dificil",
+        exp: "REPEATABLE READ: las lecturas de una transacción ven una foto consistente, e InnoDB añade bloqueos de siguiente clave para evitar lecturas fantasma." },
+      { q: "En el resultado de EXPLAIN, ¿qué significa type = ALL?",
+        ops: ["Usó todos los índices disponibles", "Se hace un barrido completo de la tabla (full table scan)", "La consulta pasó por todos los servidores", "Se verificaron todos los permisos"],
+        ok: 1, niv: "dificil",
+        exp: "type=ALL es el peor escenario: MySQL recorrerá TODA la tabla fila por fila. Si la tabla es grande, casi siempre falta un índice." },
+      { q: "¿Qué es el slow query log?",
+        ops: ["Un registro de errores de sintaxis", "Un log que anota las consultas que tardan más de cierto umbral", "El historial de respaldos", "La lista de usuarios bloqueados"],
+        ok: 1, niv: "dificil",
+        exp: "Activándolo (slow_query_log y long_query_time) MySQL anota cada consulta lenta. Es el punto de partida para saber QUÉ optimizar." },
+      { q: "¿A qué nivel bloquea filas InnoDB durante una actualización?",
+        ops: ["Bloquea toda la tabla", "Solo las filas afectadas (row-level locking)", "Solo el índice usado", "No bloquea nada nunca"],
+        ok: 1, niv: "dificil",
+        exp: "El bloqueo a nivel de fila permite que muchas sesiones actualicen filas distintas a la vez. MyISAM, en cambio, bloquea la tabla completa." },
+      { q: "¿Por qué usar utf8mb4 y no utf8 en una tabla moderna?",
+        ops: ["utf8 es más lento", "El utf8 de MySQL no incluye emojis ni muchos caracteres asiáticos; utf8mb4 sí", "utf8mb4 ocupa menos espacio", "utf8 ya está obsoleto y da error"],
+        ok: 1, niv: "dificil",
+        exp: "El 'utf8' de MySQL guarda máximo 3 bytes por carácter: los emojis (4 bytes) fallan. utf8mb4 es el UTF-8 real y completo." },
+      { q: "¿Qué logra mysqldump --single-transaction?",
+        ops: ["Comprime el respaldo automáticamente", "Un respaldo consistente sin bloquear las tablas (en InnoDB)", "Cifra el archivo de respaldo", "Divide el respaldo en varios archivos"],
+        ok: 1, niv: "dificil",
+        exp: "Envuelve el volcado en una transacción con snapshot consistente: el respaldo refleja un instante exacto y la aplicación sigue funcionando sin bloqueos." },
+      { q: "¿Qué controla la variable max_connections?",
+        ops: ["El tamaño máximo de una consulta", "El número máximo de conexiones simultáneas al servidor", "Los caracteres máximos de un campo", "La cantidad máxima de bases de datos"],
+        ok: 1, niv: "dificil",
+        exp: "Si se agota aparece el error 'Too many connections'. Ajústala según la memoria disponible; agotarla suele indicar consultas colgadas." }
     ]
   },
   {
@@ -1043,7 +1235,87 @@ const quizzes = [
       { q: "¿Qué operador compara si dos valores son IGUALES?",
         ops: ["=", "==", "===", "eq"],
         ok: 1,
-        exp: "== compara valores (5 == 5 es True); = asigna un valor a una variable. Confundirlos es error clásico." }
+        exp: "== compara valores (5 == 5 es True); = asigna un valor a una variable. Confundirlos es error clásico." },
+      { q: "¿Qué devuelve la expresión lista[1:3] si lista = [10, 20, 30, 40, 50]?",
+        ops: ["[10, 20]", "[20, 30]", "[20, 30, 40]", "[30, 40]"],
+        ok: 1, niv: "medio",
+        exp: "El slicing lista[1:3] toma desde el índice 1 hasta el 2 (el límite final es exclusivo): [20, 30]." },
+      { q: "¿Cómo accedes al valor de la clave 'nombre' en un diccionario d?",
+        ops: ["d.nombre", "d['nombre']", "d(0)", "d->nombre"],
+        ok: 1, niv: "medio",
+        exp: "Los diccionarios se acceden por clave entre corchetes: d['nombre']. También existe d.get('nombre'), que no falla si la clave no existe." },
+      { q: "¿Qué números genera range(1, 5)?",
+        ops: ["1, 2, 3, 4, 5", "1, 2, 3, 4", "0, 1, 2, 3, 4", "Solo 1 y 5"],
+        ok: 1, niv: "medio",
+        exp: "range(inicio, fin) llega hasta fin - 1: genera 1, 2, 3 y 4. El límite superior nunca se incluye." },
+      { q: "¿Qué diferencia hay entre lista.append(x) y lista.extend(x)?",
+        ops: ["Ninguna, son iguales", "append agrega x como UN solo elemento; extend agrega cada elemento de x individualmente", "extend ordena la lista después", "append solo funciona con números"],
+        ok: 1, niv: "medio",
+        exp: "[1, 2].append([3, 4]) da [1, 2, [3, 4]]. En cambio [1, 2].extend([3, 4]) da [1, 2, 3, 4]." },
+      { q: "¿Qué es un f-string en Python?",
+        ops: ["Una cadena que no se puede modificar", "Una cadena con formato que inserta variables: f'Hola {nombre}'", "Una función para leer archivos", "Un tipo de error de sintaxis"],
+        ok: 1, niv: "medio",
+        exp: "nombre = 'Ana' y print(f'Hola {nombre}') imprime Hola Ana. Es la forma moderna de combinar texto y variables (Python 3.6+)." },
+      { q: "¿Qué estructura se usa para manejar ERRORES en tiempo de ejecución?",
+        ops: ["if / else", "try / except", "catch / finally", "error / handle"],
+        ok: 1, niv: "medio",
+        exp: "try: ... except ValueError: ... intenta ejecutar el bloque y captura el error si ocurre, evitando que el programa se rompa." },
+      { q: "¿Qué imprime print('3' + '5')?",
+        ops: ["8", "35", "Error", "3 5 con espacio"],
+        ok: 1, niv: "medio",
+        exp: "Son cadenas, no números: el + las CONCATENA y muestra 35. Para sumarlas como números: int('3') + int('5') da 8." },
+      { q: "¿Cuál es la diferencia entre sorted(lista) y lista.sort()?",
+        ops: ["Son equivalentes", "sorted() devuelve una lista NUEVA ordenada; sort() ordena la original y devuelve None", "sort() siempre es más lento", "sorted() solo funciona con números"],
+        ok: 1, niv: "medio",
+        exp: "nueva = sorted(lista) conserva la original intacta. lista.sort() la modifica en el sitio: x = lista.sort() guarda None." },
+      { q: "¿Qué hace la palabra break dentro de un bucle?",
+        ops: ["Pausa el programa unos segundos", "Termina el bucle inmediatamente", "Salta a la siguiente iteración", "Reinicia el bucle desde cero"],
+        ok: 1, niv: "medio",
+        exp: "break corta el bucle completo y sale de él. continue, en cambio, salta solo la iteración actual y continúa con la siguiente." },
+      { q: "¿Cómo importas SOLO la función sqrt del módulo math?",
+        ops: ["import sqrt from math", "from math import sqrt", "import math.sqrt", "include math.sqrt"],
+        ok: 1, niv: "medio",
+        exp: "from math import sqrt permite llamar sqrt(9) directamente. Con import math deberías escribir math.sqrt(9)." },
+      { q: "¿Qué produce la expresión [x*x for x in range(5) if x % 2 == 0]?",
+        ops: ["[0, 1, 4, 9, 16]", "[0, 4, 16]", "[1, 9]", "Error de sintaxis"],
+        ok: 1, niv: "dificil",
+        exp: "Es una list comprehension: recorre 0-4, filtra los pares (0, 2, 4) y eleva al cuadrado: [0, 4, 16]. Más concisa que un for con if." },
+      { q: "¿Para qué sirven *args y **kwargs en una función?",
+        ops: ["Para pasar punteros de memoria", "Para recibir una cantidad variable de argumentos: args como tupla y kwargs como diccionario", "Para definir constantes globales", "Para capturar errores del sistema"],
+        ok: 1, niv: "dificil",
+        exp: "def f(*args, **kwargs) acepta cualquier llamada: f(1, 2, x=3) recibe args=(1, 2) y kwargs={'x': 3}. Muy usado en decoradores y wrappers." },
+      { q: "¿Qué es una función lambda?",
+        ops: ["Una función que solo funciona en listas", "Una función anónima de una sola expresión: lambda x: x * 2", "Una función que nunca termina", "Un tipo de excepción"],
+        ok: 1, niv: "dificil",
+        exp: "doble = lambda x: x * 2 equivale a una función de una línea. Brilla como clave de orden: sorted(datos, key=lambda p: p['precio'])." },
+      { q: "¿Por qué es peligroso definir def agregar(x, lista=[])?",
+        ops: ["No se puede usar un valor por defecto", "La lista por defecto se crea UNA vez y se comparte entre todas las llamadas, acumulando datos", "La lista se borra en cada llamada", "Solo acepta números"],
+        ok: 1, niv: "dificil",
+        exp: "El valor por defecto se evalúa una sola vez al DEFINIR la función: todas las llamadas comparten la misma lista. Lo correcto: lista=None y crearla dentro." },
+      { q: "¿Cuál es la diferencia entre == y is?",
+        ops: ["Son intercambiables", "== compara VALORES; is compara IDENTIDAD (si son el mismo objeto en memoria)", "is siempre es más rápido", "== solo funciona con números"],
+        ok: 1, niv: "dificil",
+        exp: "a = [1, 2] y b = [1, 2]: a == b es True (mismo valor) pero a is b es False (objetos distintos). Usa is solo con None: if x is None:" },
+      { q: "¿Qué es un decorador en Python?",
+        ops: ["Una librería de interfaces", "Una función que envuelve a otra para extender su comportamiento, aplicada con @nombre", "Un comentario especial del IDE", "Un tipo de clase abstracta"],
+        ok: 1, niv: "dificil",
+        exp: "@decorador sobre def f() ejecuta decorador(f). Sirve para añadir lógica (logs, validaciones, caché) sin modificar la función original." },
+      { q: "¿Qué hace la instrucción yield dentro de una función?",
+        ops: ["Termina la función para siempre", "Convierte la función en generador: produce valores uno a uno, bajo demanda", "Devuelve una lista completa de golpe", "Lanza una excepción controlada"],
+        ok: 1, niv: "dificil",
+        exp: "Un generador con yield no calcula todo de golpe: entrega cada valor cuando se le pide (con next o for), ahorrando memoria con secuencias enormes." },
+      { q: "¿Por qué preferir except ValueError en vez de un except sin tipo?",
+        ops: ["Porque es más rápido", "Porque un except genérico atrapa TODOS los errores y oculta bugs inesperados", "Porque funciona en más versiones de Python", "No hay ninguna diferencia"],
+        ok: 1, niv: "dificil",
+        exp: "Un except a secas captura hasta Ctrl+C o salidas del sistema, ocultando errores reales de programación. Captura siempre excepciones específicas." },
+      { q: "¿Para qué sirve el bloque if __name__ == '__main__':?",
+        ops: ["Para declarar la función main obligatoria", "Para ejecutar código solo cuando el archivo corre directamente y no cuando lo importan", "Para importar módulos más rápido", "Es un comentario requerido por Python"],
+        ok: 1, niv: "dificil",
+        exp: "Al importar tu archivo, __name__ vale el nombre del módulo y ese bloque NO se ejecuta. Al correrlo directo vale '__main__' y sí. Así un archivo es módulo y script." },
+      { q: "¿Qué copia exactamente lista[:] (o copy.copy)?",
+        ops: ["Nada: es un error de sintaxis", "Una copia SUPERFICIAL: lista nueva, pero los objetos internos siguen compartidos", "Una copia profunda e independiente", "Solo los elementos numéricos"],
+        ok: 1, niv: "dificil",
+        exp: "Copia la estructura externa, no los elementos anidados: si hay listas dentro, ambas copias apuntan a las mismas listas internas. Independencia total: copy.deepcopy." }
     ]
   },
   {
@@ -1112,7 +1384,87 @@ const quizzes = [
       { q: "¿Cómo conectas un archivo CSS EXTERNO con tu HTML?",
         ops: ["<style src='estilos.css'>", "<link rel='stylesheet' href='estilos.css'>", "<css href='estilos.css'>", "<scr" + "ipt src='estilos.css'>"],
         ok: 1,
-        exp: "<link rel='stylesheet' href='estilos.css'> dentro de <head> enlaza el CSS externo. Es la forma recomendada de trabajar." }
+        exp: "<link rel='stylesheet' href='estilos.css'> dentro de <head> enlaza el CSS externo. Es la forma recomendada de trabajar." },
+      { q: "¿Para qué sirve la etiqueta <nav>?",
+        ops: ["Para mostrar anuncios", "Para agrupar los enlaces de navegación principales", "Para insertar videos", "Para definir el pie de página"],
+        ok: 1, niv: "medio",
+        exp: "<nav> es HTML semántico: indica que ahí va el menú de navegación. Ayuda a los lectores de pantalla y a Google a entender tu página." },
+      { q: "¿Qué logra box-sizing: border-box?",
+        ops: ["Agrega un borde automático", "Que el ancho indicado INCLUYA padding y borde", "Que la caja flote a la izquierda", "Nada: está obsoleto"],
+        ok: 1, niv: "medio",
+        exp: "Con border-box, width: 300px significa 300px TOTALES aunque tengas padding y borde. Por eso casi todos los proyectos lo aplican globalmente." },
+      { q: "¿Cuál es la diferencia entre margin y padding?",
+        ops: ["Son lo mismo con otro nombre", "padding es espacio INTERNO (dentro del borde); margin es espacio EXTERNO (separación con otros elementos)", "margin solo funciona con imágenes", "padding cambia el color de fondo"],
+        ok: 1, niv: "medio",
+        exp: "Piensa en un cuadro: padding es el relleno entre el contenido y el marco; margin es la separación del cuadro con sus vecinos." },
+      { q: "¿Respecto a qué elemento se posiciona uno con position: absolute?",
+        ops: ["Siempre respecto a la ventana del navegador", "Respecto al ancestro posicionado más cercano (position distinta de static)", "Respecto a su hermano anterior", "Siempre respecto al <body>"],
+        ok: 1, niv: "medio",
+        exp: "Si ningún ancestro está posicionado, se ancla al <body>. Por eso el patrón clásico es padre con position: relative e hijo con position: absolute." },
+      { q: "¿Qué diferencia hay entre display: none y visibility: hidden?",
+        ops: ["Ninguna", "display: none quita el elemento del flujo (ocupa cero espacio); visibility: hidden lo oculta PERO conserva su lugar", "visibility: hidden elimina el elemento del HTML", "display: none solo funciona con imágenes"],
+        ok: 1, niv: "medio",
+        exp: "Con display: none el layout se reacomoda como si el elemento no existiera. Con visibility: hidden queda un hueco invisible donde estaba." },
+      { q: "¿Para qué sirven las media queries?",
+        ops: ["Para reproducir videos en la página", "Para aplicar estilos distintos según el tamaño de pantalla o dispositivo", "Para consultar APIs externas", "Para animar elementos al hacer scroll"],
+        ok: 1, niv: "medio",
+        exp: "@media (max-width: 640px) { ... } aplica esos estilos solo en pantallas pequeñas. Es la base del diseño responsive." },
+      { q: "¿A qué se refiere la unidad rem?",
+        ops: ["Al tamaño de fuente del elemento padre", "Al tamaño de fuente raíz del documento (html)", "A los píxeles físicos de la pantalla", "Al ancho de la ventana"],
+        ok: 1, niv: "medio",
+        exp: "1rem equivale al font-size del <html> (normalmente 16px). A diferencia de em, no se acumula entre niveles: es más predecible." },
+      { q: "¿Cuál es la diferencia entre id y class?",
+        ops: ["Ninguna: son sinónimos", "El id debe ser ÚNICO en la página; la class puede repetirse en muchos elementos", "class solo sirve para CSS moderno", "id solo funciona con JavaScript"],
+        ok: 1, niv: "medio",
+        exp: "id='menu' en un solo elemento (se selecciona con #menu). class='tarjeta' en cuantos quieras (se selecciona con .tarjeta). Un elemento puede tener ambas." },
+      { q: "¿Qué etiqueta crea una lista con VIÑETAS (sin numerar)?",
+        ops: ["<list>", "<ol>", "<ul>", "<li>"],
+        ok: 2, niv: "medio",
+        exp: "<ul> (unordered list) crea listas con viñetas; <ol> (ordered list) crea listas numeradas. Cada elemento va dentro de <li>." },
+      { q: "¿Qué controla la propiedad z-index?",
+        ops: ["El nivel de zoom del elemento", "Qué elemento se muestra ENCIMA de otro cuando se superponen", "La posición vertical del elemento", "El tamaño de la sombra"],
+        ok: 1, niv: "medio",
+        exp: "z-index ordena el apilamiento: número mayor = más al frente. Solo funciona en elementos con position (relative, absolute, fixed o sticky)." },
+      { q: "¿Qué hace grid-template-columns: repeat(3, 1fr)?",
+        ops: ["Crea 3 columnas del mismo ancho", "Repite la grilla completa 3 veces", "Crea 3 filas iguales", "Divide la página en 3 secciones desiguales"],
+        ok: 0, niv: "dificil",
+        exp: "1fr = una fracción del espacio libre. repeat(3, 1fr) crea 3 columnas iguales que se reparten el ancho disponible. Es el corazón de CSS Grid." },
+      { q: "¿Qué significa exactamente flex: 1 en un hijo de un contenedor flex?",
+        ops: ["Que el elemento ocupa una fila", "flex-grow: 1, flex-shrink: 1 y flex-basis: 0%: crece y se reparte el espacio por igual con sus hermanos", "Que el elemento mide 1 píxel", "Que solo puede tener 1 hijo"],
+        ok: 1, niv: "dificil",
+        exp: "flex: 1 hace que todos los hermanos con flex: 1 se repartan el espacio disponible en partes iguales. Es la abreviatura de grow, shrink y basis." },
+      { q: "¿Qué selecciona .menu li:nth-child(2n)?",
+        ops: ["Todos los <li> de .menu", "Los <li> en posiciones pares (2º, 4º, 6º...) dentro de .menu", "Solo el segundo <li> de cada menú", "Los <li> cuya clase sea par"],
+        ok: 1, niv: "dificil",
+        exp: "nth-child(2n) elige las posiciones pares. Es la técnica clásica para filas 'cebra' (alternar colores) sin escribir JavaScript." },
+      { q: "¿Qué son ::before y ::after?",
+        ops: ["Comentarios especiales de CSS", "Pseudo-elementos que insertan contenido decorativo antes o después del elemento usando content", "Selectores del elemento padre", "Animaciones de entrada y salida"],
+        ok: 1, niv: "dificil",
+        exp: ".etiqueta::after { content: '→'; } agrega una flecha visual SIN tocar el HTML. Perfectos para decoración: íconos, líneas y badges." },
+      { q: "Si varios selectores apuntan al mismo elemento, ¿cuál gana?",
+        ops: ["Siempre el último escrito en el archivo", "El de MAYOR especificidad: inline > id > clase > etiqueta", "Siempre el primero declarado", "El selector más corto"],
+        ok: 1, niv: "dificil",
+        exp: "La especificidad ordena el poder de cada selector: inline gana a #id, este gana a .clase y este a la etiqueta. A igual especificidad, gana el último declarado." },
+      { q: "¿Cuál es la diferencia entre transition y animation?",
+        ops: ["Ninguna, son lo mismo", "transition anima ENTRE dos estados con un disparador; animation con @keyframes puede ejecutarse sola y en múltiples pasos", "animation solo sirve para el hover", "transition es más potente que animation"],
+        ok: 1, niv: "dificil",
+        exp: "Usa transition para micro-interacciones (hover, focus). Usa @keyframes con animation para secuencias autónomas: pulsos, entradas y bucles infinitos." },
+      { q: "¿Por qué se recomienda animar con transform y opacity en vez de top/left?",
+        ops: ["Son más fáciles de escribir", "Porque la GPU los acelera sin recalcular el layout (sin reflow)", "Porque top y left están obsoletos", "Porque ocupan menos bytes el CSS"],
+        ok: 1, niv: "dificil",
+        exp: "Cambiar top/left fuerza al navegador a recalcular posiciones de todo (reflow) en cada cuadro. transform y opacity se componen en GPU: animaciones fluidas a 60fps." },
+      { q: "¿Qué hace position: sticky?",
+        ops: ["Deja el elemento pegajoso al mouse", "El elemento se desplaza normal, pero se 'pega' al alcanzar el umbral indicado (por ejemplo top: 0)", "Centra el elemento en pantalla", "Esconde el elemento al hacer scroll"],
+        ok: 1, niv: "dificil",
+        exp: "Un encabezado con position: sticky; top: 0; acompaña el scroll y se queda fijo arriba al llegar al borde. Es un híbrido entre relative y fixed." },
+      { q: "¿Qué permite la función calc() en CSS?",
+        ops: ["Calcular la posición del mouse", "Mezclar unidades en operaciones: width: calc(100% - 80px)", "Contar los elementos hijos", "Medir el rendimiento de la página"],
+        ok: 1, niv: "dificil",
+        exp: "calc(100% - 200px) combina porcentajes con píxeles (o rem, vh...). Imprescindible cuando conviven medidas fijas y fluidas. Ojo: los espacios alrededor del - son obligatorios." },
+      { q: "¿Qué hace el atributo defer en <script src='...'>?",
+        ops: ["Cancela el script si la red falla", "Descarga el script en paralelo pero lo ejecuta DESPUÉS de parsear el HTML, respetando el orden", "Ejecuta el script antes que cualquier otra cosa", "Convierte el script en un módulo ES6"],
+        ok: 1, niv: "dificil",
+        exp: "defer acelera la carga: el HTML no se bloquea y los scripts se ejecutan en orden al terminar el parseo. Ideal para scripts que tocan el DOM." }
     ]
   },
   {
@@ -1181,14 +1533,94 @@ const quizzes = [
       { q: "¿Qué hace git merge?",
         ops: ["Borra una rama", "Fusiona los cambios de una rama en otra", "Crea una rama nueva", "Sube los cambios a GitHub"],
         ok: 1,
-        exp: "git merge integra los cambios de una rama en la actual, por ejemplo unir tu rama de trabajo con main." }
+        exp: "git merge integra los cambios de una rama en la actual, por ejemplo unir tu rama de trabajo con main." },
+      { q: "¿Qué comando crea una rama NUEVA sin cambiarte a ella?",
+        ops: ["git branch nombre", "git checkout nombre", "git commit -b nombre", "git push nombre"],
+        ok: 0, niv: "medio",
+        exp: "git branch nombre solo la crea. git branch sin argumento lista las ramas y marca con * la actual." },
+      { q: "¿Qué comando crea una rama Y te cambia a ella en un solo paso?",
+        ops: ["git branch -m nombre", "git switch -c nombre", "git move nombre", "git init nombre"],
+        ok: 1, niv: "medio",
+        exp: "git switch -c nombre (o el clásico git checkout -b nombre) crea la rama y mueve HEAD a ella de inmediato." },
+      { q: "¿Qué contiene la carpeta oculta .git?",
+        ops: ["Los archivos del proyecto", "Todo el historial, las ramas y la configuración del repositorio", "Los respaldos automáticos de la nube", "Las dependencias del proyecto"],
+        ok: 1, niv: "medio",
+        exp: ".git es la base de datos de Git: commits, ramas, tags y configuración. Si la borras, la carpeta queda como un directorio normal sin historial." },
+      { q: "¿Qué muestra git diff?",
+        ops: ["El historial de commits", "Los cambios SIN preparar, línea por línea, en tus archivos", "La lista de ramas remotas", "Las diferencias entre usuarios del repo"],
+        ok: 1, niv: "medio",
+        exp: "git diff compara tu directorio de trabajo con el último estado guardado. Con git diff --staged ves lo que ya preparaste con git add." },
+      { q: "¿Cómo conectas tu repositorio local con uno remoto llamado origin?",
+        ops: ["git connect origin URL", "git remote add origin URL", "git link origin URL", "git push --set-url origin URL"],
+        ok: 1, niv: "medio",
+        exp: "git remote add origin https://github.com/usuario/repo.git registra el remoto. Luego, git push -u origin main sube y vincula tu rama." },
+      { q: "¿Qué hace git log --oneline?",
+        ops: ["Muestra un solo commit", "Muestra el historial compacto: una línea por commit", "Combina todos los commits en uno solo", "Muestra únicamente el último cambio"],
+        ok: 1, niv: "medio",
+        exp: "Cada commit aparece en una línea: hash corto + mensaje. Ideal para ver el historial completo de un vistazo." },
+      { q: "¿Qué es HEAD en Git?",
+        ops: ["El primer commit del proyecto", "Un puntero al commit o rama donde estás parado AHORA", "El servidor remoto principal", "Un archivo de configuración global"],
+        ok: 1, niv: "medio",
+        exp: "HEAD apunta normalmente a la rama actual y esta al último commit. Es tu posición presente en el historial." },
+      { q: "¿Cómo descartas los cambios NO guardados de un archivo?",
+        ops: ["git delete archivo", "git restore archivo", "git clean archivo", "git drop archivo"],
+        ok: 1, niv: "medio",
+        exp: "git restore archivo (antes git checkout -- archivo) devuelve el archivo a su último commit. Cuidado: los cambios descartados se pierden." },
+      { q: "¿Qué es un Pull Request (o Merge Request)?",
+        ops: ["Un comando para descargar código", "Una solicitud para que el equipo revise y fusione tu rama en la principal", "Un respaldo automático en la nube", "Un error que ocurre al fusionar"],
+        ok: 1, niv: "medio",
+        exp: "El PR muestra los cambios de tu rama para que el equipo los revise, comente y apruebe antes del merge. Es el corazón de la colaboración en GitHub." },
+      { q: "¿Para qué sirve git stash?",
+        ops: ["Para borrar los cambios definitivamente", "Para guardar cambios temporalmente sin commit y seguir con el directorio limpio", "Para crear ramas ocultas", "Para subir código cifrado al servidor"],
+        ok: 1, niv: "medio",
+        exp: "git stash guarda tus cambios pendientes y limpia el directorio; git stash pop los recupera después. Perfecto para cambiar de rama a mitad de una tarea." },
+      { q: "¿Qué hace git rebase main estando en tu rama?",
+        ops: ["Fusiona main con un único commit", "Reescribe tus commits aplicándolos SOBRE la punta de main, logrando un historial lineal", "Borra la rama main por completo", "Crea un respaldo de main antes de fusionar"],
+        ok: 1, niv: "dificil",
+        exp: "Rebase 'muda' tus commits a la nueva base de main. Historial lineal y limpio, pero cambia los hashes: evita rebase en ramas ya compartidas." },
+      { q: "¿Para qué sirve git cherry-pick <hash>?",
+        ops: ["Para borrar un commit específico", "Para copiar UN commit concreto de otra rama a la actual", "Para comparar dos commits", "Para renombrar un commit antiguo"],
+        ok: 1, niv: "dificil",
+        exp: "cherry-pick toma exactamente el commit indicado y lo aplica sobre tu rama como un commit nuevo. Ideal para rescatar un fix puntual sin fusionar todo." },
+      { q: "¿Qué hace git reset --hard <commit>?",
+        ops: ["Mueve la rama y DESCARTA todos los cambios posteriores, sin recuperarlos fácilmente", "Solo mueve el puntero conservando todos los cambios", "Crea una rama nueva en ese commit", "Deshace únicamente el último commit"],
+        ok: 0, niv: "dificil",
+        exp: "--hard reinicia todo: historial, staging y archivos. Es destructivo. --soft conserva los cambios en staging y --mixed en el directorio." },
+      { q: "¿Cuál es la diferencia entre git revert y git reset?",
+        ops: ["Son equivalentes", "revert crea un NUEVO commit que deshace cambios (seguro en ramas compartidas); reset mueve el historial hacia atrás", "reset funciona en remoto y revert no", "revert borra el historial completo"],
+        ok: 1, niv: "dificil",
+        exp: "En ramas ya publicadas usa revert: el historial queda intacto y se añade el 'antídoto'. reset reescribe el pasado y rompe el trabajo de tus compañeros." },
+      { q: "¿Qué debes hacer para resolver un conflicto de merge?",
+        ops: ["Borrar la rama remota y clonar de nuevo", "Editar los archivos marcados con <<<<<<<, hacer git add y confirmar el merge", "Ejecutar git merge --force otra vez", "Eliminar el último commit propio"],
+        ok: 1, niv: "dificil",
+        exp: "Git delimita ambas versiones con <<<<<<<, ======= y >>>>>>>. Editas dejando el contenido correcto, git add del archivo y git commit cierra la fusión." },
+      { q: "¿Para qué se usan los tags en Git?",
+        ops: ["Para etiquetar a los compañeros del equipo", "Para marcar puntos específicos del historial, normalmente versiones (v1.0, v2.0)", "Para ordenar los commits por fecha", "Para ignorar archivos temporales"],
+        ok: 1, niv: "dificil",
+        exp: "git tag v1.0 marca el punto exacto de un release. Los tags son inmutables por convención y GitHub los usa para publicar releases descargables." },
+      { q: "¿Qué hace git fetch a diferencia de git pull?",
+        ops: ["Nada: son idénticos", "fetch solo DESCARGA los cambios del remoto sin integrarlos; pull descarga Y los fusiona en tu rama", "pull solo descarga sin fusionar nunca", "fetch sube tus commits locales"],
+        ok: 1, niv: "dificil",
+        exp: "Con fetch puedes revisar qué trajo el remoto (git log origin/main) antes de integrarlo. git pull equivale a fetch + merge automático." },
+      { q: "¿Qué significa estar en 'detached HEAD'?",
+        ops: ["Que HEAD está dañado", "Que estás parado directamente en un commit, no en una rama: los commits nuevos se pierden al cambiarte", "Que no hay remoto configurado", "Que el repositorio está corrupto"],
+        ok: 1, niv: "dificil",
+        exp: "Ocurre al hacer checkout de un hash concreto. Puedes mirar con calma, pero si vas a trabajar ahí crea rama primero: git switch -c nueva-rama." },
+      { q: "¿Qué muestra git blame archivo?",
+        ops: ["Los errores de sintaxis del archivo", "Qué commit y qué autor modificó cada línea, y cuándo", "Las ramas que tocaron ese archivo", "Los conflictos pendientes de resolver"],
+        ok: 1, niv: "dificil",
+        exp: "git blame muestra autor, hash y fecha línea por línea. Con git blame -L 10,20 archivo lo limitas a un rango. Ideal para rastrear el origen de un cambio." },
+      { q: "¿Por qué git push --force se considera peligroso?",
+        ops: ["Porque consume mucho ancho de banda", "Porque SOBREESCRIBE el historial remoto y puede borrar los commits subidos por tus compañeros", "Porque fuerza un merge automático", "Porque solo funciona con cuentas de administrador"],
+        ok: 1, niv: "dificil",
+        exp: "--force pisa lo que haya en el remoto: si alguien subió trabajo, se pierde. La alternativa segura es --force-with-lease, que falla si el remoto cambió." }
     ]
   }
 ];
 
 let actual = 0, puntos = 0, aciertos = 0, fallos = 0, agotados = 0, respondido = false;
 let quizActual = null;
-let tiempoRestante = TIEMPO_PREGUNTA;
+let tiempoRestante = tiempoPorPregunta;
 let intervaloTimer = null;
 let respuestas = [];
 let racha = 0;
@@ -1390,6 +1822,7 @@ function crearTarjetaQuiz(qz, idx) {
   btn.style.setProperty("--glow", qz.color + "44");
   btn.style.setProperty("--d", idx);
   const best = mejorPuntaje(qz.id);
+  const banco = qz.preguntas.filter(p => (p.niv || "facil") === dificultad);
   btn.innerHTML = `
     <div class="fila-icono">
       <span class="badge" style="background:${qz.color}">${qz.badge}</span>
@@ -1398,11 +1831,31 @@ function crearTarjetaQuiz(qz, idx) {
     <h3>${qz.titulo}</h3>
     <p>${qz.desc}</p>
     <div class="fila-icono" style="justify-content:flex-start; gap:12px;">
-      <span class="num-preguntas"><span class="punto-color"></span>${qz.preguntas.length} preguntas</span>
+      <span class="num-preguntas"><span class="punto-color"></span>${banco.length} preguntas · ${DIFICULTADES[dificultad].tiempo}s</span>
       ${best !== null ? `<span class="mejor-puntaje">Mejor ${best}%</span>` : ""}
     </div>`;
   btn.onclick = () => iniciarQuiz(qz.id);
   return btn;
+}
+
+function pintarSelectorDificultad(contenedorId, alCambiar) {
+  const cont = document.getElementById(contenedorId);
+  cont.innerHTML = "";
+  ["facil", "medio", "dificil"].forEach(d => {
+    const cfg = DIFICULTADES[d];
+    const btn = document.createElement("button");
+    btn.className = "dif-chip" + (d === dificultad ? " activo" : "");
+    btn.textContent = cfg.etiqueta + " · " + cfg.tiempo + "s";
+    btn.onclick = () => {
+      dificultad = d;
+      tiempoPorPregunta = cfg.tiempo;
+      try { localStorage.setItem("cyberquiz_dificultad", d); } catch (e) {}
+      cont.querySelectorAll(".dif-chip").forEach(b => b.classList.remove("activo"));
+      btn.classList.add("activo");
+      alCambiar();
+    };
+    cont.appendChild(btn);
+  });
 }
 
 function abrirLobby() {
@@ -1430,12 +1883,16 @@ function abrirCategoria(id) {
   const caja = document.getElementById("cat-icono-box");
   caja.style.background = cat.color + "26";
   caja.style.borderColor = cat.color + "77";
-  const cont = document.getElementById("categoria-grid");
-  cont.innerHTML = "";
-  cat.quizzes.forEach((qid, idx) => {
-    const qz = quizzes.find(q => q.id === qid);
-    cont.appendChild(crearTarjetaQuiz(qz, idx));
-  });
+  const renderQuizzes = () => {
+    const cont = document.getElementById("categoria-grid");
+    cont.innerHTML = "";
+    cat.quizzes.forEach((qid, idx) => {
+      const qz = quizzes.find(q => q.id === qid);
+      cont.appendChild(crearTarjetaQuiz(qz, idx));
+    });
+  };
+  pintarSelectorDificultad("selector-dificultad", renderQuizzes);
+  renderQuizzes();
   $lobby.classList.add("oculto");
   $quiz.classList.add("oculto");
   $final.classList.add("oculto");
@@ -1480,16 +1937,19 @@ function iniciarQuiz(id) {
   const origen = quizzes.find(qz => qz.id === id);
   const catPadre = CATEGORIAS.find(c => c.quizzes.includes(id));
   categoriaAbierta = catPadre ? catPadre.id : null;
+  const banco = origen.preguntas.filter(p => (p.niv || "facil") === dificultad);
+  tiempoPorPregunta = DIFICULTADES[dificultad].tiempo;
   quizActual = {
     ...origen,
-    preguntas: mezclar(origen.preguntas).map(p => {
+    dificultad: dificultad,
+    preguntas: mezclar(banco.length ? banco : origen.preguntas).map(p => {
       const orden = mezclar([0, 1, 2, 3]);
       return { q: p.q, ops: orden.map(i => p.ops[i]), ok: orden.indexOf(p.ok), exp: p.exp };
     })
   };
   actual = 0; puntos = 0; aciertos = 0; fallos = 0; agotados = 0; racha = 0;
   respuestas = new Array(quizActual.preguntas.length).fill(null);
-  document.getElementById("tema-actual").textContent = quizActual.badge + " · " + quizActual.titulo.toUpperCase();
+  document.getElementById("tema-actual").textContent = quizActual.badge + " · " + quizActual.titulo.toUpperCase() + " · " + DIFICULTADES[dificultad].etiqueta;
   document.getElementById("racha").classList.remove("visible");
   $lobby.classList.add("oculto");
   $final.classList.add("oculto");
@@ -1562,7 +2022,7 @@ function actualizarDotActual(estado) {
 
 function iniciarTimer() {
   detenerTimer();
-  tiempoRestante = TIEMPO_PREGUNTA;
+  tiempoRestante = tiempoPorPregunta;
   pintarTimer();
   intervaloTimer = setInterval(() => {
     tiempoRestante -= 0.1;
@@ -1585,7 +2045,7 @@ function detenerTimer() {
 }
 
 function pintarTimer() {
-  const pct = Math.max(0, tiempoRestante / TIEMPO_PREGUNTA);
+  const pct = Math.max(0, tiempoRestante / tiempoPorPregunta);
   $tiempoNum.textContent = Math.ceil(tiempoRestante);
   $anillo.style.strokeDashoffset = String(LONGITUD_ANILLO * (1 - pct));
   $reloj.classList.remove("medio", "critico");
@@ -1623,7 +2083,8 @@ function responder(i, btn) {
   const p = quizActual.preguntas[actual];
 
   if (i === p.ok) {
-    const ganancia = 10 + racha * 2;
+    const cfg = DIFICULTADES[quizActual.dificultad] || DIFICULTADES.facil;
+    const ganancia = cfg.base + racha * 2;
     puntos += ganancia;
     aciertos++;
     racha++;
@@ -1704,7 +2165,8 @@ function terminar() {
   else if (pct >= 70) msg = "¡Muy bien! Dominas lo esencial.";
   else if (pct >= 50) msg = "Bien, pero conviene repasar un poco.";
   else msg = "Hay que estudiar más... ¡a por ello!";
-  document.getElementById("tema-final").textContent = quizActual.badge + " · " + quizActual.titulo.toUpperCase();
+  const cfgDif = DIFICULTADES[quizActual.dificultad] || DIFICULTADES.facil;
+  document.getElementById("tema-final").textContent = quizActual.badge + " · " + quizActual.titulo.toUpperCase() + " · " + cfgDif.etiqueta;
   document.getElementById("puntaje-final").textContent = `${pct}%`;
   document.getElementById("mensaje-final").textContent = msg;
   document.getElementById("stat-ok").textContent = aciertos;
@@ -1722,6 +2184,7 @@ function terminar() {
     id: quizActual.id,
     badge: quizActual.badge,
     titulo: quizActual.titulo,
+    dif: quizActual.dificultad,
     pct: pct,
     puntos: puntos,
     ok: aciertos,
@@ -1971,18 +2434,23 @@ function mpAbrirCrear() {
   const btnAtras = document.getElementById("btn-atras");
   btnAtras.classList.remove("oculto");
   btnAtras.onclick = mpAbrirMenu;
-  const cont = document.getElementById("multi-grid-quizzes");
-  cont.innerHTML = "";
-  quizzes.forEach((qz, idx) => {
-    const btn = document.createElement("button");
-    btn.className = "tarjeta-quiz";
-    btn.style.setProperty("--color-tarjeta", qz.color);
-    btn.style.setProperty("--glow", qz.color + "44");
-    btn.style.setProperty("--d", idx);
-    btn.innerHTML = `<div class="fila-icono"><span class="badge" style="background:${qz.color}">${qz.badge}</span>${ICONOS[qz.id] || ""}</div><h3>${qz.titulo}</h3><p>${qz.desc}</p><span class="num-preguntas"><span class="punto-color"></span>${qz.preguntas.length} preguntas</span>`;
-    btn.onclick = () => mpCrearSala(qz.id);
-    cont.appendChild(btn);
-  });
+  const renderQuizzes = () => {
+    const cont = document.getElementById("multi-grid-quizzes");
+    cont.innerHTML = "";
+    quizzes.forEach((qz, idx) => {
+      const banco = qz.preguntas.filter(p => (p.niv || "facil") === dificultad);
+      const btn = document.createElement("button");
+      btn.className = "tarjeta-quiz";
+      btn.style.setProperty("--color-tarjeta", qz.color);
+      btn.style.setProperty("--glow", qz.color + "44");
+      btn.style.setProperty("--d", idx);
+      btn.innerHTML = `<div class="fila-icono"><span class="badge" style="background:${qz.color}">${qz.badge}</span>${ICONOS[qz.id] || ""}</div><h3>${qz.titulo}</h3><p>${qz.desc}</p><span class="num-preguntas"><span class="punto-color"></span>${banco.length} preguntas · ${DIFICULTADES[dificultad].tiempo}s</span>`;
+      btn.onclick = () => mpCrearSala(qz.id);
+      cont.appendChild(btn);
+    });
+  };
+  pintarSelectorDificultad("selector-dificultad-multi", renderQuizzes);
+  renderQuizzes();
 }
 
 function mpCrearSala(quizId) {
@@ -1991,7 +2459,8 @@ function mpCrearSala(quizId) {
     mpEsAnfitrion = true;
     const codigo = generarCodigo();
     const origen = quizzes.find(q => q.id === quizId);
-    const preguntas = mezclar(origen.preguntas).map(p => {
+    const banco = origen.preguntas.filter(p => (p.niv || "facil") === dificultad);
+    const preguntas = mezclar(banco.length ? banco : origen.preguntas).map(p => {
       const orden = mezclar([0, 1, 2, 3]);
       return { q: p.q, ops: orden.map(i => p.ops[i]), ok: orden.indexOf(p.ok), exp: p.exp };
     });
@@ -2003,6 +2472,8 @@ function mpCrearSala(quizId) {
       quizId: origen.id,
       badge: origen.badge,
       titulo: origen.titulo,
+      dificultad: dificultad,
+      tiempo: DIFICULTADES[dificultad].tiempo,
       estado: "lobby",
       preguntaActual: 0,
       preguntas: preguntas,
@@ -2092,7 +2563,8 @@ function mpPintarHost(sala) {
   btnAtras.classList.remove("oculto");
   btnAtras.onclick = mpCerrarSala;
   const p = sala.preguntas[sala.preguntaActual];
-  document.getElementById("multi-host-tema").textContent = sala.badge + " · " + sala.titulo.toUpperCase();
+  const difTxt = DIFICULTADES[sala.dificultad] ? " · " + DIFICULTADES[sala.dificultad].etiqueta : "";
+  document.getElementById("multi-host-tema").textContent = sala.badge + " · " + sala.titulo.toUpperCase() + difTxt;
   document.getElementById("multi-host-pregunta").textContent = p.q;
   const jugadores = mpJugadores(sala);
   const respondieron = jugadores.filter(j => j.respuestas[sala.preguntaActual] !== undefined && j.respuestas[sala.preguntaActual] !== null).length;
@@ -2126,9 +2598,11 @@ function mpPintarPreguntaEstudiante(sala) {
   respondido = false;
   const idx = sala.preguntaActual;
   const p = sala.preguntas[idx];
-  quizActual = { id: sala.quizId, badge: sala.badge, titulo: sala.titulo, preguntas: sala.preguntas };
+  quizActual = { id: sala.quizId, badge: sala.badge, titulo: sala.titulo, dificultad: sala.dificultad || "facil", preguntas: sala.preguntas };
   actual = idx;
-  document.getElementById("tema-actual").textContent = sala.badge + " · " + sala.titulo.toUpperCase();
+  tiempoPorPregunta = sala.tiempo || 20;
+  const difCfg = DIFICULTADES[sala.dificultad] || DIFICULTADES.facil;
+  document.getElementById("tema-actual").textContent = sala.badge + " · " + sala.titulo.toUpperCase() + " · " + difCfg.etiqueta;
   document.getElementById("racha").classList.remove("visible");
   document.getElementById("contador").textContent = `Pregunta ${idx + 1} de ${sala.preguntas.length}`;
   document.getElementById("puntos").textContent = mpMisPuntos(sala) + " pts";
@@ -2174,10 +2648,10 @@ function mpPintarDots(sala) {
 function mpIniciarTimerSincronizado(sala) {
   detenerTimer();
   const inicio = sala.preguntaInicio || mpServidorAhora();
-  tiempoRestante = TIEMPO_PREGUNTA;
+  tiempoRestante = tiempoPorPregunta;
   pintarTimer();
   intervaloTimer = setInterval(() => {
-    const restante = TIEMPO_PREGUNTA - (mpServidorAhora() - inicio) / 1000;
+    const restante = tiempoPorPregunta - (mpServidorAhora() - inicio) / 1000;
     tiempoRestante = Math.max(0, restante);
     pintarTimer();
     if (tiempoRestante <= 0) {
@@ -2194,9 +2668,10 @@ function mpResponder(i, btn) {
   const sala = mpUltimaSala;
   const idx = sala.preguntaActual;
   const p = sala.preguntas[idx];
-  const restante = Math.max(0, TIEMPO_PREGUNTA - (mpServidorAhora() - sala.preguntaInicio) / 1000);
+  const restante = Math.max(0, tiempoPorPregunta - (mpServidorAhora() - sala.preguntaInicio) / 1000);
   if (i === p.ok) {
-    const ganancia = 500 + Math.round(500 * restante / TIEMPO_PREGUNTA);
+    const difCfg = DIFICULTADES[sala.dificultad] || DIFICULTADES.facil;
+    const ganancia = difCfg.baseMulti + Math.round(difCfg.baseMulti * restante / tiempoPorPregunta);
     btn.classList.add("correcta");
     revelarRespuesta(null);
     mostrarExplicacion("bien", `¡Correcto! +${ganancia} pts`);
@@ -2296,7 +2771,7 @@ function mpPintarPodio(sala) {
     try {
       const nombre = obtenerNombre() || (mio ? mio.nombre : "");
       if (nombre && nombre.length >= 2 && mio) {
-        rkEnviar({ nombre: nombre, puntos: mio.puntos || 0, pct: null, badge: sala.badge, titulo: sala.titulo, modo: "multi" });
+        rkEnviar({ nombre: nombre, puntos: mio.puntos || 0, pct: null, badge: sala.badge, titulo: sala.titulo, dif: sala.dificultad || null, modo: "multi" });
       }
     } catch (e) {}
   }
@@ -2351,6 +2826,7 @@ function rkEnviar(datos, cb, cbErr) {
         pct: typeof datos.pct === "number" ? datos.pct : null,
         badge: datos.badge || "",
         titulo: datos.titulo || "",
+        dif: datos.dif || null,
         modo: datos.modo === "multi" ? "multi" : "solo",
         fecha: firebase.database.ServerValue.TIMESTAMP
       }).then(() => { if (cb) cb(); }).catch(err => { if (cbErr) cbErr(err); });
@@ -2412,10 +2888,11 @@ function pintarTop(datos) {
 
 function filaTop(r, i) {
   const nombre = r.nombre || "Anónimo";
+  const difTxt = DIFICULTADES[r.dif] ? " · " + DIFICULTADES[r.dif].etiqueta : "";
   return '<div class="fila-rank' + (i < 3 ? " top" + (i + 1) : "") + '">' +
     '<span class="pos">' + (i + 1) + '</span>' +
     '<span class="avatar" style="background:' + colorAvatar(nombre) + '">' + escaparHtml(nombre.charAt(0).toUpperCase()) + '</span>' +
-    '<span class="info-rank"><b>' + escaparHtml(nombre) + '</b> · ' + escaparHtml(r.badge || "") + ' · ' + fmtFechaCorta(r.fecha) + '</span>' +
+    '<span class="info-rank"><b>' + escaparHtml(nombre) + '</b> · ' + escaparHtml(r.badge || "") + difTxt + ' · ' + fmtFechaCorta(r.fecha) + '</span>' +
     '<span class="modo-tag">' + (r.modo === "multi" ? "MULTI" : "SOLO") + '</span>' +
     '<span style="margin-left:auto;font-weight:700;color:#a5b4fc;">' + (r.puntos || 0) + ' pts</span>' +
     '</div>';
@@ -2448,7 +2925,7 @@ function enviarAlTop(nombre, registro) {
   const err = document.getElementById("top-error");
   err.textContent = "Enviando puntuación al Top...";
   rkEnviar(
-    { nombre: nombre, puntos: registro.puntos, pct: registro.pct, badge: registro.badge, titulo: registro.titulo, modo: "solo" },
+    { nombre: nombre, puntos: registro.puntos, pct: registro.pct, badge: registro.badge, titulo: registro.titulo, dif: registro.dif, modo: "solo" },
     () => {
       topEnviadoEsteJuego = true;
       guardarNombre(nombre);
