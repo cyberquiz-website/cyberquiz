@@ -1776,6 +1776,31 @@ function mezclar(arr) {
   return copia;
 }
 
+function numeroPreguntasPartida(total) {
+  return total >= 13 ? 10 : Math.max(5, total - 2);
+}
+
+function seleccionarPreguntas(banco, clave) {
+  const total = banco.length;
+  const objetivo = numeroPreguntasPartida(total);
+  let cola = [];
+  try {
+    const guardada = JSON.parse(localStorage.getItem(clave) || "[]");
+    if (Array.isArray(guardada)) cola = guardada;
+  } catch (e) {}
+  cola = cola.filter(t => banco.some(p => p.q === t));
+  const porTexto = {};
+  banco.forEach(p => { porTexto[p.q] = p; });
+  const usadas = cola.map(t => porTexto[t]).filter(Boolean);
+  const nuevas = mezclar(banco.filter(p => cola.indexOf(p.q) === -1));
+  const elegidas = nuevas.concat(usadas).slice(0, objetivo);
+  const elegidasTxt = elegidas.map(p => p.q);
+  const restantes = usadas.map(p => p.q).filter(t => elegidasTxt.indexOf(t) === -1);
+  const nuevaCola = restantes.concat(elegidasTxt);
+  try { localStorage.setItem(clave, JSON.stringify(nuevaCola.slice(-total))); } catch (e) {}
+  return mezclar(elegidas);
+}
+
 const CATEGORIAS = [
   {
     id: "datos",
@@ -1831,7 +1856,7 @@ function crearTarjetaQuiz(qz, idx) {
     <h3>${qz.titulo}</h3>
     <p>${qz.desc}</p>
     <div class="fila-icono" style="justify-content:flex-start; gap:12px;">
-      <span class="num-preguntas"><span class="punto-color"></span>${banco.length} preguntas · ${DIFICULTADES[dificultad].tiempo}s</span>
+      <span class="num-preguntas"><span class="punto-color"></span>${numeroPreguntasPartida(banco.length)} de ${banco.length} preguntas · ${DIFICULTADES[dificultad].tiempo}s</span>
       ${best !== null ? `<span class="mejor-puntaje">Mejor ${best}%</span>` : ""}
     </div>`;
   btn.onclick = () => iniciarQuiz(qz.id);
@@ -1939,10 +1964,11 @@ function iniciarQuiz(id) {
   categoriaAbierta = catPadre ? catPadre.id : null;
   const banco = origen.preguntas.filter(p => (p.niv || "facil") === dificultad);
   tiempoPorPregunta = DIFICULTADES[dificultad].tiempo;
+  const seleccion = seleccionarPreguntas(banco.length ? banco : origen.preguntas, "cyberquiz_vistas_" + id + "_" + dificultad);
   quizActual = {
     ...origen,
     dificultad: dificultad,
-    preguntas: mezclar(banco.length ? banco : origen.preguntas).map(p => {
+    preguntas: seleccion.map(p => {
       const orden = mezclar([0, 1, 2, 3]);
       return { q: p.q, ops: orden.map(i => p.ops[i]), ok: orden.indexOf(p.ok), exp: p.exp };
     })
@@ -2444,7 +2470,7 @@ function mpAbrirCrear() {
       btn.style.setProperty("--color-tarjeta", qz.color);
       btn.style.setProperty("--glow", qz.color + "44");
       btn.style.setProperty("--d", idx);
-      btn.innerHTML = `<div class="fila-icono"><span class="badge" style="background:${qz.color}">${qz.badge}</span>${ICONOS[qz.id] || ""}</div><h3>${qz.titulo}</h3><p>${qz.desc}</p><span class="num-preguntas"><span class="punto-color"></span>${banco.length} preguntas · ${DIFICULTADES[dificultad].tiempo}s</span>`;
+      btn.innerHTML = `<div class="fila-icono"><span class="badge" style="background:${qz.color}">${qz.badge}</span>${ICONOS[qz.id] || ""}</div><h3>${qz.titulo}</h3><p>${qz.desc}</p><span class="num-preguntas"><span class="punto-color"></span>${numeroPreguntasPartida(banco.length)} de ${banco.length} preguntas · ${DIFICULTADES[dificultad].tiempo}s</span>`;
       btn.onclick = () => mpCrearSala(qz.id);
       cont.appendChild(btn);
     });
@@ -2460,7 +2486,8 @@ function mpCrearSala(quizId) {
     const codigo = generarCodigo();
     const origen = quizzes.find(q => q.id === quizId);
     const banco = origen.preguntas.filter(p => (p.niv || "facil") === dificultad);
-    const preguntas = mezclar(banco.length ? banco : origen.preguntas).map(p => {
+    const seleccion = seleccionarPreguntas(banco.length ? banco : origen.preguntas, "cyberquiz_vistas_" + origen.id + "_" + dificultad);
+    const preguntas = seleccion.map(p => {
       const orden = mezclar([0, 1, 2, 3]);
       return { q: p.q, ops: orden.map(i => p.ops[i]), ok: orden.indexOf(p.ok), exp: p.exp };
     });
