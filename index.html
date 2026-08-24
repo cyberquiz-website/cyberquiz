@@ -297,6 +297,7 @@
     border: 1px solid rgba(255,255,255,0.1);
   }
   .selector-dificultad { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-bottom: 22px; }
+  .etiqueta-selector { text-align: center; color: var(--texto-suave); font-size: 0.78rem; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; margin: 16px 0 8px; }
   .dif-chip {
     font-family: inherit; cursor: pointer;
     background: rgba(255,255,255,0.05);
@@ -782,7 +783,10 @@
 <div class="tarjeta oculto" id="pantalla-multi-crear">
   <h2>Elige el quiz de la sala</h2>
   <p class="subtitulo">Las preguntas y respuestas se barajan para todos</p>
+  <p class="etiqueta-selector">Dificultad</p>
   <div class="selector-dificultad" id="selector-dificultad-multi"></div>
+  <p class="etiqueta-selector">Tiempo total para completar el quiz</p>
+  <div class="selector-dificultad" id="selector-duracion-multi"></div>
   <div class="lobby-grid" id="multi-grid-quizzes"></div>
 </div>
 
@@ -816,31 +820,19 @@
 </div>
 
 <div class="tarjeta oculto" id="pantalla-multi-espera">
-  <h2>¡Estás dentro, <span id="multi-nombre-espera"></span>!</h2>
-  <p class="multi-estado">Esperando a que el maestro inicie la partida...</p>
+  <h2 id="multi-titulo-espera">¡Estás dentro!</h2>
+  <p class="multi-estado" id="multi-estado-espera">Esperando a que el maestro inicie la partida...</p>
   <h3>Jugadores (<span id="multi-num-espera">1</span>)</h3>
   <div class="lista-jugadores" id="multi-lista-espera"></div>
 </div>
 
 <div class="tarjeta oculto" id="pantalla-multi-host">
   <span class="tema-actual" id="multi-host-tema"></span>
-  <div class="pregunta-host" id="multi-host-pregunta"></div>
-  <div class="contador-respuestas"><span id="multi-host-contador">0</span> / <span id="multi-host-total">0</span> han respondido</div>
+  <div class="codigo-sala" id="multi-host-tiempo" style="letter-spacing:6px;">0:00</div>
+  <p class="multi-estado">Tiempo restante · Los estudiantes avanzan a su propio ritmo</p>
+  <div class="contador-respuestas"><span id="multi-host-contador">0</span> / <span id="multi-host-total">0</span> han terminado</div>
   <div class="barra-progreso"><div id="multi-host-relleno"></div></div>
-  <p class="multi-estado">Pregunta <span id="multi-host-num">1</span> de <span id="multi-host-de">10</span> · La partida avanza sola: al responder todos o al agotarse el tiempo</p>
-  <div class="zona-botones-final">
-    <button class="boton" id="btn-multi-ver-ranking">Ver ranking →</button>
-  </div>
-</div>
-
-<div class="tarjeta oculto" id="pantalla-multi-ranking">
-  <h2 id="multi-ranking-titulo">Ranking</h2>
-  <div id="multi-ranking-lista" style="max-width:500px;margin:0 auto;"></div>
-  <p class="multi-estado" id="multi-ranking-cuenta" style="min-height:22px;"></p>
-  <div class="zona-botones-final" id="multi-ranking-botones" style="display:none">
-    <button class="boton" id="btn-multi-siguiente">Siguiente ahora →</button>
-  </div>
-  <p class="multi-estado" id="multi-ranking-espera" style="display:none">La partida continúa automáticamente...</p>
+  <p class="multi-estado">Cuando todos terminen, o se agote el tiempo, se mostrarán los resultados automáticamente</p>
 </div>
 
 <div class="tarjeta oculto" id="pantalla-multi-podio">
@@ -2051,6 +2043,7 @@ function actualizarDotActual(estado) {
 function iniciarTimer() {
   detenerTimer();
   tiempoRestante = tiempoPorPregunta;
+  timerDenominador = tiempoPorPregunta;
   pintarTimer();
   intervaloTimer = setInterval(() => {
     tiempoRestante -= 0.1;
@@ -2073,7 +2066,7 @@ function detenerTimer() {
 }
 
 function pintarTimer() {
-  const pct = Math.max(0, tiempoRestante / tiempoPorPregunta);
+  const pct = Math.max(0, tiempoRestante / timerDenominador);
   $tiempoNum.textContent = Math.ceil(tiempoRestante);
   $anillo.style.strokeDashoffset = String(LONGITUD_ANILLO * (1 - pct));
   $reloj.classList.remove("medio", "critico");
@@ -2102,7 +2095,7 @@ function mostrarExplicacion(tipo, textoExtra) {
 
 function responder(i, btn) {
   if (respondido) return;
-  if (mpEnMulti && mpUltimaSala && mpUltimaSala.estado === "pregunta" && !mpEsAnfitrion) {
+  if (mpEnMulti && mpUltimaSala && mpUltimaSala.estado === "jugando" && !mpEsAnfitrion) {
     mpResponder(i, btn);
     return;
   }
@@ -2366,19 +2359,51 @@ let mpJugadorId = null;
 let mpOffset = 0;
 let mpRefs = [];
 let mpUltimaSala = null;
-let mpUltimaRender = "";
 let mpAutoKey = "";
-let mpTimerMulti = null;
 let mpEnMulti = false;
 let mpPodioCelebrado = false;
 let mpTimerHost = null;
 let mpAutoReloj = "";
 let mpConectando = false;
 let mpTimeoutConexion = null;
+let miActual = null;
+let mpRenderKey = "";
+let timerDenominador = tiempoPorPregunta;
+let duracionMulti = cargarDuracion();
 
 const COLORES_AVATAR = ["#6366f1", "#8b5cf6", "#ec4899", "#f59e0b", "#10b981", "#06b6d4", "#f43f5e", "#84cc16"];
-const PANTALLAS_MULTI = ["menu", "crear", "sala", "unirse", "espera", "host", "ranking", "podio"]
+const PANTALLAS_MULTI = ["menu", "crear", "sala", "unirse", "espera", "host", "podio"]
   .reduce((acc, id) => { acc[id] = document.getElementById("pantalla-multi-" + id); return acc; }, {});
+
+function pintarSelectorDuracion(contenedorId, alCambiar) {
+  const cont = document.getElementById(contenedorId);
+  cont.innerHTML = "";
+  [[2, 120000], [3, 180000], [5, 300000], [10, 600000]].forEach(par => {
+    const btn = document.createElement("button");
+    btn.className = "dif-chip" + (duracionMulti === par[1] ? " activo" : "");
+    btn.textContent = par[0] + " min";
+    btn.onclick = () => {
+      duracionMulti = par[1];
+      try { localStorage.setItem("cyberquiz_duracion", String(par[1])); } catch (e) {}
+      cont.querySelectorAll(".dif-chip").forEach(b => b.classList.remove("activo"));
+      btn.classList.add("activo");
+      alCambiar();
+    };
+    cont.appendChild(btn);
+  });
+}
+
+function cargarDuracion() {
+  try {
+    const d = parseInt(localStorage.getItem("cyberquiz_duracion"), 10);
+    return [120000, 180000, 300000, 600000].indexOf(d) !== -1 ? d : 180000;
+  } catch (e) { return 180000; }
+}
+
+function fmtMinSeg(seg) {
+  seg = Math.max(0, Math.ceil(seg));
+  return Math.floor(seg / 60) + ":" + String(seg % 60).padStart(2, "0");
+}
 
 function mpCargado() {
   return FIREBASE_CONFIG.apiKey.indexOf("PEGA_AQUI") === -1 && FIREBASE_CONFIG.databaseURL.indexOf("PEGA_AQUI") === -1;
@@ -2438,16 +2463,16 @@ function mpLimpiar() {
   mpSala = null;
   mpJugadorId = null;
   mpUltimaSala = null;
-  mpUltimaRender = "";
   mpAutoKey = "";
   mpEnMulti = false;
   mpPodioCelebrado = false;
   detenerTimer();
-  if (mpTimerMulti) { clearInterval(mpTimerMulti); mpTimerMulti = null; }
   if (mpTimerHost) { clearInterval(mpTimerHost); mpTimerHost = null; }
   mpAutoReloj = "";
   mpConectando = false;
   if (mpTimeoutConexion) { clearTimeout(mpTimeoutConexion); mpTimeoutConexion = null; }
+  miActual = null;
+  mpRenderKey = "";
 }
 
 function mpAbrirMenu() {
@@ -2486,6 +2511,7 @@ function mpAbrirCrear() {
     });
   };
   pintarSelectorDificultad("selector-dificultad-multi", renderQuizzes);
+  pintarSelectorDuracion("selector-duracion-multi", renderQuizzes);
   renderQuizzes();
 }
 
@@ -2536,12 +2562,12 @@ function mpCrearSala(quizId) {
         quizId: origen.id,
         badge: origen.badge,
         titulo: origen.titulo,
-        dificultad: dificultad,
-        tiempo: DIFICULTADES[dificultad].tiempo,
-        estado: "lobby",
-        preguntaActual: 0,
-        preguntas: preguntas,
-        jugadores: {}
+      dificultad: dificultad,
+      tiempo: DIFICULTADES[dificultad].tiempo,
+      duracion: duracionMulti,
+      estado: "lobby",
+      preguntas: preguntas,
+      jugadores: {}
       }).then(() => mpSuscribirSala()).catch(e => {
         falloConexion("Error creando la sala: " + e.message);
       });
@@ -2573,29 +2599,25 @@ function mpSalaEliminada() {
 }
 
 function mpEnrutador(sala) {
-  const clave = sala.estado + ":" + sala.preguntaActual;
-  const cambio = clave !== mpUltimaRender;
-  mpUltimaRender = clave;
   if (sala.estado === "lobby") {
     if (mpEsAnfitrion) mpPintarSalaEspera(sala);
     else mpPintarEspera(sala);
-  } else if (sala.estado === "pregunta") {
-    if (mpEsAnfitrion) {
-      mpPintarHost(sala);
-    } else if (cambio) {
-      mpPintarPreguntaEstudiante(sala);
-    } else {
-      document.getElementById("puntos").textContent = mpMisPuntos(sala) + " pts";
-    }
-  } else if (sala.estado === "ranking") {
-    mpPintarRanking(sala);
+  } else if (sala.estado === "jugando") {
+    if (mpEsAnfitrion) mpPintarHost(sala);
+    else mpPintarJugador(sala);
   } else if (sala.estado === "final") {
-    mpPintarPodio(sala);
+    const yo = mpJugadorId && sala.jugadores ? sala.jugadores[mpJugadorId] : null;
+    if (mpEsAnfitrion || (yo && yo.terminado)) {
+      mpPintarPodio(sala);
+    } else {
+      mpSalirEstudiante();
+      document.getElementById("multi-error-menu").textContent = "Se acabó el tiempo y no completaste el quiz. ¡Inténtalo en la próxima sala!";
+    }
   }
 }
 
 function mpJugadores(sala) {
-  return Object.entries(sala.jugadores || {}).map(([id, j]) => ({ id: id, nombre: j.nombre, puntos: j.puntos || 0, respuestas: j.respuestas || {} }));
+  return Object.entries(sala.jugadores || {}).map(([id, j]) => ({ id: id, nombre: j.nombre, puntos: j.puntos || 0, respuestas: j.respuestas || {}, terminado: j.terminado || false, actual: j.actual }));
 }
 
 function mpPintarSalaEspera(sala) {
@@ -2622,12 +2644,24 @@ function mpPintarEspera(sala) {
   const btnAtras = document.getElementById("btn-atras");
   btnAtras.classList.remove("oculto");
   btnAtras.onclick = mpSalirEstudiante;
+  document.getElementById("multi-titulo-espera").textContent = "¡Estás dentro!";
+  document.getElementById("multi-estado-espera").textContent = "Esperando a que el maestro inicie la partida...";
   const jugadores = mpJugadores(sala);
   document.getElementById("multi-num-espera").textContent = jugadores.length;
   document.getElementById("multi-lista-espera").innerHTML = jugadores.map(j =>
     `<span class="jugador-chip"><span class="avatar" style="background:${colorAvatar(j.nombre)}">${escaparHtml(j.nombre.charAt(0).toUpperCase())}</span>${escaparHtml(j.nombre)}</span>`).join("");
-  const mia = jugadores.find(j => j.id === mpJugadorId);
-  if (mia) document.getElementById("multi-nombre-espera").textContent = mia.nombre;
+}
+
+function mpPantallaTerminado(sala, yo) {
+  detenerTimer();
+  mpMostrarPantalla("espera");
+  document.getElementById("btn-atras").classList.add("oculto");
+  document.getElementById("multi-titulo-espera").textContent = "¡Terminaste" + (yo.nombre ? ", " + yo.nombre : "") + "!";
+  document.getElementById("multi-estado-espera").textContent = "Completaste todo el quiz con " + (yo.puntos || 0) + " pts. Esperando a que terminen los demás...";
+  const jugadores = mpJugadores(sala);
+  document.getElementById("multi-num-espera").textContent = jugadores.filter(j => j.terminado).length + "/" + jugadores.length;
+  document.getElementById("multi-lista-espera").innerHTML = jugadores.map(j =>
+    `<span class="jugador-chip"${j.terminado ? ' style="opacity:0.6"' : ""}><span class="avatar" style="background:${colorAvatar(j.nombre)}">${escaparHtml(j.nombre.charAt(0).toUpperCase())}</span>${escaparHtml(j.nombre)}${j.terminado ? " · listo" : ""}</span>`).join("");
 }
 
 function mpPintarHost(sala) {
@@ -2635,42 +2669,39 @@ function mpPintarHost(sala) {
   const btnAtras = document.getElementById("btn-atras");
   btnAtras.classList.remove("oculto");
   btnAtras.onclick = mpCerrarSala;
-  const p = sala.preguntas[sala.preguntaActual];
   const difTxt = DIFICULTADES[sala.dificultad] ? " · " + DIFICULTADES[sala.dificultad].etiqueta : "";
   document.getElementById("multi-host-tema").textContent = sala.badge + " · " + sala.titulo.toUpperCase() + difTxt;
-  document.getElementById("multi-host-pregunta").textContent = p.q;
   const jugadores = mpJugadores(sala);
-  const respondieron = jugadores.filter(j => j.respuestas[sala.preguntaActual] !== undefined && j.respuestas[sala.preguntaActual] !== null).length;
-  document.getElementById("multi-host-contador").textContent = respondieron;
+  const terminados = jugadores.filter(j => j.terminado).length;
+  document.getElementById("multi-host-contador").textContent = terminados;
   document.getElementById("multi-host-total").textContent = jugadores.length;
-  document.getElementById("multi-host-num").textContent = sala.preguntaActual + 1;
-  document.getElementById("multi-host-de").textContent = sala.preguntas.length;
-  document.getElementById("multi-host-relleno").style.width = (respondieron / Math.max(jugadores.length, 1)) * 100 + "%";
-  const claveAuto = "rank:" + sala.preguntaActual;
-  if (jugadores.length > 0 && respondieron >= jugadores.length && mpAutoKey !== claveAuto) {
-    mpAutoKey = claveAuto;
+  document.getElementById("multi-host-relleno").style.width = (terminados / Math.max(jugadores.length, 1)) * 100 + "%";
+  const restante = Math.max(0, ((sala.inicio || mpServidorAhora()) + (sala.duracion || 180000) - mpServidorAhora()) / 1000);
+  document.getElementById("multi-host-tiempo").textContent = fmtMinSeg(restante);
+  const claveFin = "fin:" + (sala.inicio || 0);
+  if (jugadores.length > 0 && jugadores.every(j => j.terminado) && mpAutoKey !== claveFin) {
+    mpAutoKey = claveFin;
     setTimeout(() => {
-      if (mpUltimaSala && mpUltimaSala.estado === "pregunta" && mpUltimaSala.preguntaActual === sala.preguntaActual) {
-        fbDb.ref("salas/" + mpSala).update({ estado: "ranking" });
-      }
-    }, 1500);
+      if (mpUltimaSala && mpUltimaSala.estado === "jugando") fbDb.ref("salas/" + mpSala).update({ estado: "final" });
+    }, 1000);
   }
-  const claveReloj = "reloj:" + sala.preguntaActual;
+  const claveReloj = "reloj:" + (sala.inicio || 0);
   if (mpAutoReloj !== claveReloj) {
     mpAutoReloj = claveReloj;
     if (mpTimerHost) { clearInterval(mpTimerHost); mpTimerHost = null; }
-    const inicio = sala.preguntaInicio || mpServidorAhora();
-    const duracion = (sala.tiempo || 20) * 1000;
     mpTimerHost = setInterval(() => {
-      if (!mpUltimaSala || mpUltimaSala.estado !== "pregunta") {
+      if (!mpUltimaSala || mpUltimaSala.estado !== "jugando") {
         if (mpTimerHost) { clearInterval(mpTimerHost); mpTimerHost = null; }
         return;
       }
-      if (mpServidorAhora() - inicio >= duracion) {
+      const resta = Math.max(0, ((mpUltimaSala.inicio || 0) + (mpUltimaSala.duracion || 180000) - mpServidorAhora()) / 1000);
+      const el = document.getElementById("multi-host-tiempo");
+      if (el) el.textContent = fmtMinSeg(resta);
+      if (resta <= 0) {
         if (mpTimerHost) { clearInterval(mpTimerHost); mpTimerHost = null; }
-        fbDb.ref("salas/" + mpSala).update({ estado: "ranking" });
+        fbDb.ref("salas/" + mpSala).update({ estado: "final" });
       }
-    }, 250);
+    }, 500);
   }
 }
 
@@ -2679,25 +2710,42 @@ function mpMisPuntos(sala) {
   return 0;
 }
 
-function mpPintarPreguntaEstudiante(sala) {
+function mpPintarJugador(sala) {
+  const yo = mpJugadorId && sala.jugadores ? sala.jugadores[mpJugadorId] : null;
+  if (!yo) return;
+  document.getElementById("puntos").textContent = (yo.puntos || 0) + " pts";
+  if (yo.terminado) {
+    mpPantallaTerminado(sala, yo);
+    return;
+  }
+  if (typeof miActual !== "number" || miActual < 0) miActual = typeof yo.actual === "number" ? yo.actual : 0;
+  if (miActual >= sala.preguntas.length) {
+    mpTerminar();
+    return;
+  }
+  const clave = (sala.inicio || 0) + ":" + miActual;
+  if (mpRenderKey === clave && !$quiz.classList.contains("oculto")) return;
+  mpRenderPreguntaLocal(sala);
+}
+
+function mpRenderPreguntaLocal(sala) {
+  mpRenderKey = (sala.inicio || 0) + ":" + miActual;
   mpMostrarPantalla(null);
   const btnAtras = document.getElementById("btn-atras");
   btnAtras.classList.remove("oculto");
   btnAtras.onclick = mpSalirEstudiante;
   reiniciarAnimacion($quiz);
   respondido = false;
-  const idx = sala.preguntaActual;
-  const p = sala.preguntas[idx];
+  actual = miActual;
   quizActual = { id: sala.quizId, badge: sala.badge, titulo: sala.titulo, dificultad: sala.dificultad || "facil", preguntas: sala.preguntas };
-  actual = idx;
-  tiempoPorPregunta = sala.tiempo || 20;
+  const p = sala.preguntas[miActual];
   const difCfg = DIFICULTADES[sala.dificultad] || DIFICULTADES.facil;
   document.getElementById("tema-actual").textContent = sala.badge + " · " + sala.titulo.toUpperCase() + " · " + difCfg.etiqueta;
   document.getElementById("racha").classList.remove("visible");
-  document.getElementById("contador").textContent = `Pregunta ${idx + 1} de ${sala.preguntas.length}`;
+  document.getElementById("contador").textContent = `Pregunta ${miActual + 1} de ${sala.preguntas.length}`;
   document.getElementById("puntos").textContent = mpMisPuntos(sala) + " pts";
-  document.getElementById("relleno").style.width = (idx / sala.preguntas.length) * 100 + "%";
-  mpPintarDots(sala);
+  document.getElementById("relleno").style.width = (miActual / sala.preguntas.length) * 100 + "%";
+  mpPintarDots(sala, miActual);
   document.getElementById("zona-resultado").style.display = "none";
   document.getElementById("zona-siguiente").style.display = "none";
   const $preguntaEl = document.getElementById("pregunta");
@@ -2718,17 +2766,17 @@ function mpPintarPreguntaEstudiante(sala) {
   });
   void cont.offsetWidth;
   cont.classList.add("animar");
-  mpIniciarTimerSincronizado(sala);
+  if (!intervaloTimer) mpIniciarTimerSincronizado(sala);
 }
 
-function mpPintarDots(sala) {
+function mpPintarDots(sala, idxActual) {
   const cont = document.getElementById("dots");
   cont.innerHTML = "";
   const mia = mpJugadorId && sala.jugadores && sala.jugadores[mpJugadorId] ? (sala.jugadores[mpJugadorId].respuestas || {}) : {};
   for (let i = 0; i < sala.preguntas.length; i++) {
     const d = document.createElement("span");
     let cls = "dot";
-    if (i === sala.preguntaActual) cls += " actual";
+    if (i === idxActual) cls += " actual";
     else if (mia[i] !== undefined && mia[i] !== null) cls += mia[i].op === -1 ? " to" : (mia[i].op === sala.preguntas[i].ok ? " ok" : " mal");
     d.className = cls;
     cont.appendChild(d);
@@ -2737,32 +2785,31 @@ function mpPintarDots(sala) {
 
 function mpIniciarTimerSincronizado(sala) {
   detenerTimer();
-  const idx = sala.preguntaActual;
-  const inicio = sala.preguntaInicio || mpServidorAhora();
-  tiempoRestante = tiempoPorPregunta;
+  const inicio = sala.inicio || mpServidorAhora();
+  const duracion = (sala.duracion || 180000) / 1000;
+  timerDenominador = duracion;
+  tiempoRestante = duracion;
   pintarTimer();
   intervaloTimer = setInterval(() => {
-    const restante = tiempoPorPregunta - (mpServidorAhora() - inicio) / 1000;
-    tiempoRestante = Math.max(0, restante);
+    const restante = Math.max(0, duracion - (mpServidorAhora() - inicio) / 1000);
+    tiempoRestante = restante;
     pintarTimer();
-    if (tiempoRestante <= 0) {
+    if (restante <= 0) {
       detenerTimer();
-      if (mpUltimaSala && mpUltimaSala.preguntaActual === idx) mpExpirar();
+      mpTiempoAgotadoJugador();
     }
-  }, 100);
+  }, 250);
 }
 
 function mpResponder(i, btn) {
   if (respondido) return;
   respondido = true;
-  detenerTimer();
   const sala = mpUltimaSala;
-  const idx = sala.preguntaActual;
+  const idx = miActual;
   const p = sala.preguntas[idx];
-  const restante = Math.max(0, tiempoPorPregunta - (mpServidorAhora() - sala.preguntaInicio) / 1000);
+  const difCfg = DIFICULTADES[sala.dificultad] || DIFICULTADES.facil;
   if (i === p.ok) {
-    const difCfg = DIFICULTADES[sala.dificultad] || DIFICULTADES.facil;
-    const ganancia = difCfg.baseMulti + Math.round(difCfg.baseMulti * restante / tiempoPorPregunta);
+    const ganancia = difCfg.baseMulti;
     btn.classList.add("correcta");
     revelarRespuesta(null);
     mostrarExplicacion("bien", `¡Correcto! +${ganancia} pts`);
@@ -2775,7 +2822,53 @@ function mpResponder(i, btn) {
     sonidos.fallo();
     mpEscribirRespuesta(idx, i, 0);
   }
-  mpPintarDots(sala);
+  mpPintarDots(sala, idx);
+  setTimeout(() => {
+    if (!mpEnMulti || !mpUltimaSala || mpUltimaSala.estado !== "jugando") return;
+    mpSiguientePregunta();
+  }, 1400);
+}
+
+function mpSiguientePregunta() {
+  const sala = mpUltimaSala;
+  if (!sala) return;
+  const sig = miActual + 1;
+  if (sig >= sala.preguntas.length) {
+    mpTerminar();
+    return;
+  }
+  miActual = sig;
+  respondido = false;
+  mpRenderPreguntaLocal(sala);
+}
+
+function mpEscribirRespuesta(idx, op, ganancia) {
+  const refJ = fbDb.ref("salas/" + mpSala + "/jugadores/" + mpJugadorId);
+  refJ.child("respuestas/" + idx).set({ op: op });
+  refJ.child("actual").set(idx + 1);
+  if (ganancia > 0) refJ.child("puntos").transaction(cur => (cur || 0) + ganancia);
+}
+
+function mpTerminar() {
+  if (!mpSala || !fbDb || !mpJugadorId) return;
+  detenerTimer();
+  fbDb.ref("salas/" + mpSala + "/jugadores/" + mpJugadorId).update({
+    terminado: true,
+    terminoEn: firebase.database.ServerValue.TIMESTAMP
+  });
+  const sala = mpUltimaSala || { jugadores: {} };
+  const yo = sala.jugadores && sala.jugadores[mpJugadorId] ? sala.jugadores[mpJugadorId] : { nombre: "", puntos: 0 };
+  mpPantallaTerminado(sala, yo);
+}
+
+function mpTiempoAgotadoJugador() {
+  if (!mpEnMulti) return;
+  const sala = mpUltimaSala;
+  const yo = sala && mpJugadorId && sala.jugadores ? sala.jugadores[mpJugadorId] : null;
+  if (yo && yo.terminado) return;
+  sonidos.tiempoAgotado();
+  mpSalirEstudiante();
+  document.getElementById("multi-error-menu").textContent = "Se acabó el tiempo del quiz y no lo completaste. ¡Suerte en la próxima!";
 }
 
 function mpEscribirRespuesta(idx, op, ganancia) {
@@ -2784,69 +2877,17 @@ function mpEscribirRespuesta(idx, op, ganancia) {
   if (ganancia > 0) refJ.child("puntos").transaction(cur => (cur || 0) + ganancia);
 }
 
-function mpExpirar() {
-  if (respondido) return;
-  respondido = true;
-  revelarRespuesta(mpUltimaSala.preguntas[mpUltimaSala.preguntaActual].ok);
-  mostrarExplicacion("tiempo", "¡Tiempo agotado!");
-  sonidos.tiempoAgotado();
-  fbDb.ref("salas/" + mpSala + "/jugadores/" + mpJugadorId + "/respuestas/" + mpUltimaSala.preguntaActual).set({ op: -1 });
-  mpPintarDots(mpUltimaSala);
-}
-
-function mpPintarRanking(sala) {
-  mpMostrarPantalla("ranking");
-  detenerTimer();
-  document.getElementById("btn-atras").classList.add("oculto");
-  const jugadores = mpJugadores(sala).sort((a, b) => b.puntos - a.puntos);
-  const esUltima = sala.preguntaActual >= sala.preguntas.length - 1;
-  document.getElementById("multi-ranking-titulo").textContent = `Pregunta ${sala.preguntaActual + 1} de ${sala.preguntas.length} · Ranking general`;
-  document.getElementById("multi-ranking-lista").innerHTML = jugadores.slice(0, 10).map((j, i) =>
-    `<div class="fila-rank top${i + 1}${j.id === mpJugadorId ? " actual" : ""}"><span class="pos">${i + 1}</span><span class="info-rank"><b>${escaparHtml(j.nombre)}</b></span><span style="margin-left:auto;font-weight:700;color:#a5b4fc;">${j.puntos} pts</span></div>`).join("");
-  document.getElementById("multi-ranking-botones").style.display = mpEsAnfitrion ? "flex" : "none";
-  document.getElementById("multi-ranking-espera").style.display = mpEsAnfitrion ? "none" : "block";
-  document.getElementById("btn-multi-siguiente").textContent = esUltima ? "Ver podio ahora" : "Siguiente ahora →";
-  const claveCuenta = "cuenta:" + sala.preguntaActual;
-  if (mpAutoKey !== claveCuenta) {
-    mpAutoKey = claveCuenta;
-    let ticks = 0;
-    const lbl = document.getElementById("multi-ranking-cuenta");
-    const pintarCuenta = () => {
-      ticks++;
-      const faltan = Math.max(0, 6 - Math.floor(ticks / 10));
-      lbl.textContent = esUltima
-        ? "Podio final en " + faltan + " segundos..."
-        : "Siguiente pregunta en " + faltan + " segundos...";
-      return ticks >= 60;
-    };
-    pintarCuenta();
-    if (mpTimerMulti) clearInterval(mpTimerMulti);
-    mpTimerMulti = setInterval(() => {
-      if (pintarCuenta()) {
-        clearInterval(mpTimerMulti);
-        mpTimerMulti = null;
-        lbl.textContent = "";
-        if (mpUltimaSala && mpUltimaSala.estado === "ranking") mpSiguiente();
-      }
-    }, 100);
-  }
-}
-
-function mpSiguiente() {
-  const sala = mpUltimaSala;
-  const esUltima = sala.preguntaActual >= sala.preguntas.length - 1;
-  const upd = esUltima
-    ? { estado: "final" }
-    : { estado: "pregunta", preguntaActual: sala.preguntaActual + 1, preguntaInicio: firebase.database.ServerValue.TIMESTAMP };
-  fbDb.ref("salas/" + mpSala).update(upd);
-}
-
 function mpPintarPodio(sala) {
   mpMostrarPantalla("podio");
   detenerTimer();
   document.getElementById("btn-atras").classList.add("oculto");
-  const jugadores = mpJugadores(sala).sort((a, b) => b.puntos - a.puntos);
+  const jugadores = mpJugadores(sala).filter(j => j.terminado).sort((a, b) => b.puntos - a.puntos);
   const podio = document.getElementById("multi-podio");
+  if (!jugadores.length) {
+    podio.innerHTML = '<p class="multi-estado">Nadie completó el quiz a tiempo.</p>';
+    document.getElementById("multi-podio-lista").innerHTML = "";
+    return;
+  }
   podio.innerHTML = [1, 0, 2].map(pos => {
     const j = jugadores[pos];
     if (!j) return "";
@@ -3066,11 +3107,7 @@ document.getElementById("btn-multi-unirse").onclick = () => {
   document.getElementById("multi-input-nombre").value = "";
 };
 document.getElementById("btn-multi-iniciar").onclick = () => {
-  fbDb.ref("salas/" + mpSala).update({ estado: "pregunta", preguntaActual: 0, preguntaInicio: firebase.database.ServerValue.TIMESTAMP });
-};
-document.getElementById("btn-multi-siguiente").onclick = mpSiguiente;
-document.getElementById("btn-multi-ver-ranking").onclick = () => {
-  fbDb.ref("salas/" + mpSala).update({ estado: "ranking" });
+  fbDb.ref("salas/" + mpSala).update({ estado: "jugando", inicio: firebase.database.ServerValue.TIMESTAMP });
 };
 document.getElementById("btn-multi-cerrar").onclick = mpCerrarSala;
 document.getElementById("btn-multi-salir").onclick = () => { if (mpEsAnfitrion) mpCerrarSala(); else mpSalirEstudiante(); };
