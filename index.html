@@ -1415,6 +1415,8 @@ function abrirLobby() {
   $quiz.classList.add("oculto");
   $final.classList.add("oculto");
   document.getElementById("pantalla-categoria").classList.add("oculto");
+  document.getElementById("pantalla-top").classList.add("oculto");
+  Object.values(PANTALLAS_MULTI).forEach(el => el.classList.add("oculto"));
   $lobby.classList.remove("oculto");
 }
 
