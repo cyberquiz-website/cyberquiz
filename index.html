@@ -72,9 +72,15 @@
     max-width: 940px;
     padding: 44px;
     text-align: center;
-    animation: entrada 0.45s cubic-bezier(.2,.8,.3,1);
+    animation: entrada 0.55s cubic-bezier(.2,.8,.3,1);
   }
-  @keyframes entrada { from { opacity: 0; transform: translateY(24px) scale(0.97); filter: blur(6px); } to { opacity: 1; transform: none; filter: blur(0); } }
+  @keyframes entrada {
+    from { opacity: 0; transform: translateY(38px) scale(0.955); filter: blur(12px); }
+    55% { filter: blur(0); }
+    to { opacity: 1; transform: none; filter: blur(0); }
+  }
+  @keyframes salida { to { opacity: 0; transform: translateY(-22px) scale(0.97); filter: blur(9px); } }
+  .tarjeta.salida { pointer-events: none; animation: salida 0.2s cubic-bezier(.45,0,.65,1) forwards; }
 
   h1 {
     font-size: clamp(2.3rem, 5.5vw, 3.6rem);
@@ -191,7 +197,7 @@
   #reloj { font-variant-numeric: tabular-nums; }
   @keyframes pulso { 0%,100% { transform: scale(1); } 50% { transform: scale(1.07); } }
   .barra-progreso { height: 9px; background: rgba(255,255,255,0.07); border-radius: 999px; overflow: hidden; margin-bottom: 10px; }
-  #relleno { height: 100%; width: 0%; background: linear-gradient(90deg, var(--acento), var(--acento2)); border-radius: 999px; transition: width 0.45s cubic-bezier(.2,.8,.3,1); }
+  #relleno { height: 100%; width: 0%; background: linear-gradient(90deg, var(--acento), var(--acento2)); border-radius: 999px; transition: width 0.55s cubic-bezier(.22,1,.36,1); }
   .barra-tiempo { height: 6px; background: rgba(255,255,255,0.06); border-radius: 999px; overflow: hidden; margin-bottom: 26px; }
   #tiempo-relleno {
     height: 100%; width: 100%;
@@ -292,6 +298,10 @@
     background: var(--acento); color: #fff;
   }
   .fila-rank.actual { border-color: rgba(99,102,241,0.55); background: rgba(99,102,241,0.12); }
+  .ranking-final .fila-rank { animation: aparecer-fila 0.5s cubic-bezier(.22,1.15,.36,1) both; }
+  .ranking-final .fila-rank:nth-of-type(2) { animation-delay: 80ms; }
+  .ranking-final .fila-rank:nth-of-type(3) { animation-delay: 160ms; }
+  @keyframes aparecer-fila { from { opacity: 0; transform: translateX(-16px); } to { opacity: 1; transform: none; } }
   .posicion-actual { text-align: center; color: var(--texto-suave); font-size: 0.85rem; margin-top: 12px; }
   .zona-top { margin-top: 6px; }
   .estado-top { color: var(--texto-suave); font-size: 0.92rem; min-height: 22px; margin-top: 10px; }
@@ -407,6 +417,12 @@
   .podio-lugar .nombre-podio { font-weight: 700; font-size: 1rem; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .podio-lugar .puntos-podio { color: var(--texto-suave); font-size: 0.88rem; }
   .podio-lugar.l1 { transform: scale(1.15); }
+  .podio-lugar { animation: subir-podio 0.55s cubic-bezier(.24,1.25,.35,1) both; }
+  .podio-lugar.l2 { animation-delay: 90ms; }
+  .podio-lugar.l3 { animation-delay: 180ms; }
+  .podio-lugar.l1 { animation-name: subir-podio-l1; animation-delay: 0s; }
+  @keyframes subir-podio { from { opacity: 0; transform: translateY(26px) scale(0.9); } to { opacity: 1; transform: none; } }
+  @keyframes subir-podio-l1 { from { opacity: 0; transform: translateY(30px) scale(1.02); } to { opacity: 1; transform: scale(1.15); } }
   .multi-estado { color: var(--texto-suave); font-size: 0.95rem; margin: 14px 0; }
   .contador-respuestas { font-size: 1.4rem; font-weight: 800; color: #a5b4fc; margin: 18px 0; }
   .multi-error { color: var(--rojo); font-size: 0.9rem; min-height: 22px; margin-top: 10px; }
@@ -565,7 +581,7 @@
   .dots { display: flex; justify-content: center; gap: 7px; margin-bottom: 20px; flex-wrap: wrap; }  .dot {
     width: 10px; height: 10px; border-radius: 50%;
     background: rgba(255,255,255,0.13);
-    transition: all 0.3s;
+    transition: all 0.35s cubic-bezier(.22,1.2,.36,1);
   }
   .dot.actual {
     background: #fff;
@@ -589,10 +605,10 @@
   .racha.visible { display: inline-flex; }
   @keyframes pop-racha { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 
-  .pregunta.animar { animation: deslizar-pregunta 0.38s cubic-bezier(.2,.8,.3,1); }
-  @keyframes deslizar-pregunta { from { opacity: 0; transform: translateX(28px); } to { opacity: 1; transform: none; } }
-  .opciones.animar .opcion { animation: subir-opcion 0.4s cubic-bezier(.2,.8,.3,1) both; animation-delay: calc(var(--o) * 55ms); }
-  @keyframes subir-opcion { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+  .pregunta.animar { animation: deslizar-pregunta 0.42s cubic-bezier(.22,.9,.32,1); }
+  @keyframes deslizar-pregunta { from { opacity: 0; transform: translateY(16px) scale(0.99); filter: blur(6px); } to { opacity: 1; transform: none; filter: blur(0); } }
+  .opciones.animar .opcion { animation: subir-opcion 0.48s cubic-bezier(.22,1.18,.36,1) both; animation-delay: calc(var(--o) * 60ms); }
+  @keyframes subir-opcion { from { opacity: 0; transform: translateY(16px) scale(0.97); } to { opacity: 1; transform: none; } }
 
   .boton::after {
     content: "";
@@ -2051,12 +2067,7 @@ function abrirLobby() {
   pintarStatsGlobales();
   document.getElementById("btn-atras").onclick = volverAtras;
   document.getElementById("btn-atras").classList.add("oculto");
-  $quiz.classList.add("oculto");
-  $final.classList.add("oculto");
-  document.getElementById("pantalla-categoria").classList.add("oculto");
-  document.getElementById("pantalla-top").classList.add("oculto");
-  Object.values(PANTALLAS_MULTI).forEach(el => el.classList.add("oculto"));
-  $lobby.classList.remove("oculto");
+  cambiarPantalla($lobby);
 }
 
 function abrirCategoria(id) {
@@ -2079,12 +2090,8 @@ function abrirCategoria(id) {
   };
   pintarSelectorDificultad("selector-dificultad", renderQuizzes);
   renderQuizzes();
-  $lobby.classList.add("oculto");
-  $quiz.classList.add("oculto");
-  $final.classList.add("oculto");
   document.getElementById("btn-atras").classList.remove("oculto");
-  reiniciarAnimacion(document.getElementById("pantalla-categoria"));
-  document.getElementById("pantalla-categoria").classList.remove("oculto");
+  cambiarPantalla(document.getElementById("pantalla-categoria"));
 }
 
 function volverAtras() {
@@ -2138,19 +2145,60 @@ function iniciarQuiz(id) {
   respuestas = new Array(quizActual.preguntas.length).fill(null);
   document.getElementById("tema-actual").textContent = quizActual.badge + " · " + quizActual.titulo.toUpperCase() + " · " + DIFICULTADES[dificultad].etiqueta;
   document.getElementById("racha").classList.remove("visible");
-  $lobby.classList.add("oculto");
-  $final.classList.add("oculto");
-  document.getElementById("pantalla-categoria").classList.add("oculto");
   document.getElementById("btn-atras").classList.remove("oculto");
-  reiniciarAnimacion($quiz);
+  cambiarPantalla($quiz);
   mostrarPregunta();
 }
 
 function reiniciarAnimacion(el) {
+  el.classList.remove("salida");
   el.classList.remove("oculto");
   el.style.animation = "none";
   void el.offsetWidth;
   el.style.animation = "";
+}
+
+let transicionToken = 0;
+
+function cambiarPantalla(elEntrante) {
+  const token = ++transicionToken;
+  const todas = [$lobby, $quiz, $final,
+    document.getElementById("pantalla-categoria"),
+    document.getElementById("pantalla-top"),
+    ...Object.values(PANTALLAS_MULTI)];
+  const visibles = todas.filter(el => el !== elEntrante && !el.classList.contains("oculto"));
+  if (!visibles.length) {
+    if (elEntrante) reiniciarAnimacion(elEntrante);
+    return;
+  }
+  visibles.forEach(el => {
+    el.style.animation = "";
+    el.classList.add("salida");
+  });
+  setTimeout(() => {
+    if (token !== transicionToken) return;
+    todas.forEach(el => {
+      el.classList.remove("salida");
+      el.classList.add("oculto");
+      el.style.animation = "";
+    });
+    if (elEntrante) reiniciarAnimacion(elEntrante);
+  }, 200);
+}
+
+function animarContador(el, hasta, sufijo, dur) {
+  dur = dur || 900;
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    el.textContent = hasta + sufijo;
+    return;
+  }
+  const t0 = performance.now();
+  function paso(t) {
+    const k = Math.min(1, (t - t0) / dur);
+    el.textContent = Math.round(hasta * (1 - Math.pow(1 - k, 3))) + sufijo;
+    if (k < 1) requestAnimationFrame(paso);
+  }
+  requestAnimationFrame(paso);
 }
 
 function escaparHtml(s) {
@@ -2344,8 +2392,7 @@ document.getElementById("btn-siguiente").onclick = () => {
 
 function terminar() {
   detenerTimer();
-  $quiz.classList.add("oculto");
-  reiniciarAnimacion($final);
+  cambiarPantalla($final);
   const total = quizActual.preguntas.length;
   const pct = Math.round((aciertos / total) * 100);
   let msg;
@@ -2355,11 +2402,11 @@ function terminar() {
   else msg = "Hay que estudiar más... ¡a por ello!";
   const cfgDif = DIFICULTADES[quizActual.dificultad] || DIFICULTADES.facil;
   document.getElementById("tema-final").textContent = quizActual.badge + " · " + quizActual.titulo.toUpperCase() + " · " + cfgDif.etiqueta;
-  document.getElementById("puntaje-final").textContent = `${pct}%`;
+  animarContador(document.getElementById("puntaje-final"), pct, "%", 1100);
   document.getElementById("mensaje-final").textContent = msg;
-  document.getElementById("stat-ok").textContent = aciertos;
-  document.getElementById("stat-mal").textContent = fallos;
-  document.getElementById("stat-timeout").textContent = agotados;
+  animarContador(document.getElementById("stat-ok"), aciertos, "", 750);
+  animarContador(document.getElementById("stat-mal"), fallos, "", 750);
+  animarContador(document.getElementById("stat-timeout"), agotados, "", 750);
   const previoMejor = parseInt(mejorPuntaje(quizActual.id) || "0", 10);
   guardarMejor(quizActual.id, pct);
   const esRecord = pct > previoMejor && pct > 0;
@@ -2625,10 +2672,8 @@ function colorAvatar(nombre) {
 }
 
 function mpMostrarPantalla(id) {
-  [$lobby, $quiz, $final, document.getElementById("pantalla-categoria")].forEach(el => el.classList.add("oculto"));
-  Object.values(PANTALLAS_MULTI).forEach(el => el.classList.add("oculto"));
   mpEnMulti = true;
-  if (id) reiniciarAnimacion(PANTALLAS_MULTI[id]);
+  cambiarPantalla(id ? PANTALLAS_MULTI[id] : null);
 }
 
 function mpLimpiar() {
@@ -2904,11 +2949,10 @@ function mpPintarJugador(sala) {
 
 function mpRenderPreguntaLocal(sala) {
   mpRenderKey = (sala.inicio || 0) + ":" + miActual;
-  mpMostrarPantalla(null);
+  if ($quiz.classList.contains("oculto")) cambiarPantalla($quiz);
   const btnAtras = document.getElementById("btn-atras");
   btnAtras.classList.remove("oculto");
   btnAtras.onclick = mpSalirEstudiante;
-  reiniciarAnimacion($quiz);
   respondido = false;
   actual = miActual;
   quizActual = { id: sala.quizId, badge: sala.badge, titulo: sala.titulo, dificultad: sala.dificultad || "facil", preguntas: sala.preguntas };
@@ -3164,15 +3208,10 @@ function rkCargar(cb) {
 function abrirTop() {
   detenerTimer();
   categoriaAbierta = null;
-  $lobby.classList.add("oculto");
-  $quiz.classList.add("oculto");
-  $final.classList.add("oculto");
-  document.getElementById("pantalla-categoria").classList.add("oculto");
-  Object.values(PANTALLAS_MULTI).forEach(el => el.classList.add("oculto"));
   const btnAtras = document.getElementById("btn-atras");
   btnAtras.classList.remove("oculto");
   btnAtras.onclick = abrirLobby;
-  reiniciarAnimacion(document.getElementById("pantalla-top"));
+  cambiarPantalla(document.getElementById("pantalla-top"));
   cargarListaTop();
 }
 
